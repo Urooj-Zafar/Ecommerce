@@ -45,7 +45,7 @@ const page = () => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
+    <div className="flex justify-center items-center min-h-screen p-5">
       <div className="w-full max-w-2xl p-10 bg-white border border-black/20 shadow-lg rounded-t-3xl rounded-b-xl flex flex-col items-center">
         <h2 className="font-extrabold text-4xl mb-10 flex items-center gap-4 text-black">
           <PackagePlus size={35}/> Add Product <ShoppingCart size={35}/>

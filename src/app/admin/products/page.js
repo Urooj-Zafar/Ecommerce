@@ -1,11 +1,14 @@
 "use client";
+
 import axios from "axios";
 import { SquarePen, Trash2Icon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 const Page = () => {
+  const router = useRouter();
   const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -16,45 +19,68 @@ const Page = () => {
 
   const itemsPerPage = 6;
 
-  // Fetch categories
-  const getCategories = async () => {
+const getCategories = async () => {
     try {
       const res = await axios.get("/api/category");
-      if (res.data) {
-        setCategories(res.data.Category || []);
-      }
-    } catch (err) {
+
+      console.log("CATEGORY RESPONSE:", res.data);
+
+      const categoryData =
+        res.data?.Category ||
+        res.data?.categories ||
+        res.data?.data ||
+        [];
+
+      setCategories(Array.isArray(categoryData) ? categoryData : []);
+    } catch (error) {
+      console.error("CATEGORY ERROR:", error.response?.data || error);
       toast.error("Failed to fetch categories.");
+      setCategories([]);
     }
   };
 
-  // Fetch products
-  const getProducts = async () => {
-    setLoading(true);
+const getProducts = async () => {
     try {
+      setLoading(true);
+
       const res = await axios.get("/api/products");
-      if (res.data.success) {
-        setAllProducts(res.data.products || []);
-        setFilteredProducts(res.data.products || []);
-      }
-    } catch (err) {
+
+      console.log("PRODUCT RESPONSE:", res.data);
+
+      const products = res.data?.products || res.data?.data || [];
+
+      setAllProducts(Array.isArray(products) ? products : []);
+      setFilteredProducts(Array.isArray(products) ? products : []);
+    } catch (error) {
+      console.error(
+        "FETCH PRODUCTS ERROR:",
+        error.response?.data || error
+      );
+
       toast.error("Failed to fetch products.");
+
+      setAllProducts([]);
+      setFilteredProducts([]);
     } finally {
       setLoading(false);
     }
   };
-
-  // Filter logic
-  const applyFilters = (query, categoryId, productList = allProducts) => {
+const applyFilters = (
+    query,
+    categoryId,
+    productList = allProducts
+  ) => {
     let filtered = [...productList];
 
     if (categoryId) {
-      filtered = filtered.filter((p) => p?.category?._id === categoryId);
+      filtered = filtered.filter(
+        (p) => p?.category?._id === categoryId
+      );
     }
 
     if (query) {
       filtered = filtered.filter((p) =>
-        p?.title?.toLowerCase().includes(query)
+        p?.title?.toLowerCase().includes(query.toLowerCase())
       );
     }
 
@@ -63,55 +89,106 @@ const Page = () => {
 
   const handleCategoryChange = (e) => {
     const categoryId = e.target.value;
+
     setSelectedCategory(categoryId);
     setCurrentPage(1);
-    applyFilters(searchQuery, categoryId);
+
+    applyFilters(
+      searchQuery,
+      categoryId,
+      allProducts
+    );
   };
 
   const handleSearch = (e) => {
-    const query = e.target.value.toLowerCase();
+    const query = e.target.value;
+
     setSearchQuery(query);
     setCurrentPage(1);
-    applyFilters(query, selectedCategory);
-  };
 
-  useEffect(() => {
+    applyFilters(
+      query,
+      selectedCategory,
+      allProducts
+    );
+  };
+useEffect(() => {
     getCategories();
     getProducts();
   }, []);
 
-  // Pagination
-  const totalPages = Math.ceil((filteredProducts?.length || 0) / itemsPerPage);
+ const totalPages = Math.ceil(
+    filteredProducts.length / itemsPerPage
+  );
 
-  const paginatedProducts = (filteredProducts || []).slice(
+  const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Delete product
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Are you sure to delete this product?");
+ const handleDelete = async (id) => {
+    if (!id) {
+      toast.error("Product ID is missing");
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
+
     if (!confirmDelete) return;
 
     try {
       const res = await axios.delete(`/api/products/${id}`);
 
-      if (res.data.success) {
+      console.log("DELETE RESPONSE:", res.data);
+      console.log("DELETE STATUS:", res.status);
+
+      // HTTP 200/204 means the request succeeded.
+      if (res.status >= 200 && res.status < 300) {
         toast.success("Product deleted successfully");
-        getProducts();
+
+       
+        setAllProducts((prev) =>
+          prev.filter((product) => product._id !== id)
+        );
+
+        setFilteredProducts((prev) =>
+          prev.filter((product) => product._id !== id)
+        );
+
+        
+        setCurrentPage((prev) => {
+          const remainingItems = filteredProducts.length - 1;
+          const newTotalPages = Math.max(
+            1,
+            Math.ceil(remainingItems / itemsPerPage)
+          );
+
+          return Math.min(prev, newTotalPages);
+        });
       } else {
         toast.error("Delete failed");
       }
     } catch (error) {
-      toast.error("Delete failed");
+      console.error(
+        "DELETE PRODUCT ERROR:",
+        error.response?.data || error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+          "Delete failed"
+      );
     }
   };
 
   return (
     <div className="p-4">
-      
+
       {/* Search + Filter */}
       <div className="flex justify-between mb-4">
+
         <input
           type="text"
           placeholder="Search products..."
@@ -121,15 +198,21 @@ const Page = () => {
         />
 
         <div className="flex items-center gap-3">
+
           <select
             className="border border-gray-300 px-3 py-2 rounded-md"
             value={selectedCategory}
             onChange={handleCategoryChange}
           >
-            <option value="">All Categories</option>
+            <option value="">
+              All Categories
+            </option>
 
             {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
+              <option
+                key={cat._id}
+                value={cat._id}
+              >
                 {cat.title}
               </option>
             ))}
@@ -142,76 +225,131 @@ const Page = () => {
           >
             +
           </Link>
+
         </div>
       </div>
 
       {/* Table */}
       <div className="relative overflow-x-auto">
+
         <table className="w-full text-sm text-left text-gray-500">
+
           <thead className="text-xs text-gray-700 uppercase bg-gray-100">
             <tr>
-              <th className="px-6 py-3">Product</th>
-              <th className="px-6 py-3">Stock</th>
-              <th className="px-6 py-3">Category</th>
-              <th className="px-6 py-3">Price</th>
-              <th className="px-6 py-3">Actions</th>
+              <th className="px-6 py-3">
+                Product
+              </th>
+
+              <th className="px-6 py-3">
+                Stock
+              </th>
+
+              <th className="px-6 py-3">
+                Category
+              </th>
+
+              <th className="px-6 py-3">
+                Price
+              </th>
+
+              <th className="px-6 py-3">
+                Actions
+              </th>
             </tr>
           </thead>
 
           <tbody>
-            {paginatedProducts.map((v) => (
-              <tr key={v._id} className="bg-white border-b">
+
+            {paginatedProducts.map((product) => (
+              <tr
+                key={product._id}
+                className="bg-white border-b"
+              >
+
+                {/* Product */}
                 <td className="px-6 py-4 flex items-center gap-3">
 
                   <div className="w-10 h-10 border rounded-full overflow-hidden">
+
                     <img
                       className="w-full h-full object-cover"
                       src={
-                        v?.images?.[0] ||
+                        product?.images?.[0] ||
                         "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true"
                       }
-                      alt="product"
+                      alt={product?.title || "product"}
                     />
+
                   </div>
 
-                  {v?.title}
+                  {product?.title}
+
                 </td>
 
-                <td className="px-6 py-4">{v?.stock}</td>
-
+                {/* Stock */}
                 <td className="px-6 py-4">
-                  {v?.category?.title || "N/A"}
+                  {product?.stock}
                 </td>
 
-                <td className="px-6 py-4">${v?.price}</td>
+                {/* Category */}
+                <td className="px-6 py-4">
+                  {product?.category?.title || "N/A"}
+                </td>
 
+                {/* Price */}
+                <td className="px-6 py-4">
+                  ${product?.price}
+                </td>
+
+                {/* Actions */}
                 <td className="px-6 py-4 flex gap-4">
+
+                  {/* Delete */}
                   <button
-                    onClick={() => handleDelete(v._id)}
+                    type="button"
+                    onClick={() =>
+                      handleDelete(product._id)
+                    }
                     className="text-red-500 hover:text-red-700"
+                    title="Delete"
                   >
                     <Trash2Icon size={18} />
                   </button>
 
-                  <Link
-                    href={`/admin/products/update/${v._id}`}
-                    className="text-black"
-                  >
-                    <SquarePen size={18} />
-                  </Link>
+                  {/* Edit */}
+                  <button
+  type="button"
+  onClick={() =>
+    router.push(`/admin/products/update/${product._id}`)
+  }
+  className="text-black hover:text-gray-600"
+  title="Edit"
+>
+  <SquarePen size={18} />
+</button>
+
                 </td>
+
               </tr>
             ))}
+
           </tbody>
+
         </table>
 
         {loading && (
-          <p className="text-center mt-4">Loading...</p>
+          <p className="text-center mt-4">
+            Loading...
+          </p>
         )}
 
-        {!loading && filteredProducts.length === 0 && (
-          <p className="text-center mt-4">No products found</p>
-        )}
+        {!loading &&
+          filteredProducts.length === 0 && (
+            <p className="text-center mt-4">
+              No products found
+            </p>
+          )}
+
       </div>
 
       {/* Pagination */}
@@ -220,10 +358,12 @@ const Page = () => {
 
           <button
             onClick={() =>
-              setCurrentPage((prev) => Math.max(prev - 1, 1))
+              setCurrentPage((prev) =>
+                Math.max(prev - 1, 1)
+              )
             }
             disabled={currentPage === 1}
-            className="px-4 py-2 border rounded"
+            className="px-4 py-2 border rounded disabled:opacity-50"
           >
             Previous
           </button>
@@ -235,17 +375,21 @@ const Page = () => {
           <button
             onClick={() =>
               setCurrentPage((prev) =>
-                Math.min(prev + 1, totalPages)
+                Math.min(
+                  prev + 1,
+                  totalPages
+                )
               )
             }
             disabled={currentPage === totalPages}
-            className="px-4 py-2 border rounded"
+            className="px-4 py-2 border rounded disabled:opacity-50"
           >
             Next
           </button>
 
         </div>
       )}
+
     </div>
   );
 };
