@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import axios from "axios";
 
-export default function SearchPage() {
+function Search() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -125,4 +125,16 @@ export default function SearchPage() {
       </div>
     </div>
   );
+}
+export default function searchPage(){
+  return(
+    <Suspense
+    fallback={
+        <p className="text-center mt-10 text-lg">
+          Loading products...
+        </p>
+      }>
+        <search />
+    </Suspense>
+  )
 }

@@ -194,7 +194,7 @@ export default function ProductDetail() {
       <div className="max-w-6xl mx-auto">
         <div className=" rounded-2xl p-6 md:p-10">
           <div className="flex flex-col lg:flex-row gap-10 ">
-            <div className="flex flex-col justify-left gap-4 w-full lg:w-1/2">
+            <div className="flex flex-col items-center justify-left gap-4 w-full lg:w-1/2">
               <div className="relative">
                 {images.length > 0 ? (
                   <img
@@ -250,7 +250,7 @@ export default function ProductDetail() {
               )}
             </div>
 
-            <div className="flex-1 flex flex-col gap-4 max-w-md lg:text-left">
+            <div className="flex-1 flex flex-col gap-4 max-w-md lg:text-left py-10">
               <h1 className="text-4xl font-bold">
                 {product.title}
               </h1>
