@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { suspense, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
 function OTP() {
@@ -167,13 +167,13 @@ function OTP() {
 
 export default function verifyOTP(){
   return(
-    <suspense
+    <Suspense
     fallback={
         <p className="text-center mt-10 text-lg">
           Loading...
         </p>
       }>
       <OTP />
-    </suspense>
+    </Suspense>
   )
 }
