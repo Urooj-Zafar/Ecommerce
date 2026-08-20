@@ -1,21 +1,32 @@
 import UpdateProductForm from "./UpdateProductForm";
+
 export default async function Page({ params }) {
-  const id  = await params.id;
+  const { id } = await params;
 
   let categories = [];
-  let product = [];
+  let product = null;
 
   try {
     const [categoriesRes, productRes] = await Promise.all([
-      fetch(`/api/category`).then(r => r.ok ? r.json() : { Category: [] }),
-      fetch(`/api/products/${id}`).then(r => r.ok ? r.json() : { single: null })
+      fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/category`, {
+        cache: "no-store",
+      }).then((r) => (r.ok ? r.json() : { Category: [] })),
+
+      fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`, {
+        cache: "no-store",
+      }).then((r) => (r.ok ? r.json() : { single: null })),
     ]);
 
-    categories = categoriesRes.Category || [];
-    product = productRes.single || null;
+    categories = categoriesRes?.Category || [];
+    product = productRes?.single || null;
   } catch (err) {
     console.error("Fetch failed:", err);
   }
 
-  return <UpdateProductForm product={product} categories={categories} />;
+  return (
+    <UpdateProductForm
+      product={product}
+      categories={categories}
+    />
+  );
 }

@@ -40,7 +40,7 @@ export default function UpdateProductForm() {
       try {
         const res = await axios.get(`/api/products/${id}`);
 
-        const product = res.data;
+        const product = res.data.single || res.data;
 
         setFormData({
           title: product.title || "",
