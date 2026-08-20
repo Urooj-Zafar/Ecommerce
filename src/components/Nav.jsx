@@ -287,66 +287,47 @@ export default function Nav() {
           </div>
 
           {menuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() =>
-                  setMenuOpen(false)
-                }
-              />
+  <>
+    <div
+      className="fixed inset-0 z-40"
+      onClick={() => setMenuOpen(false)}
+    />
 
-              <div
-                ref={menuRef}
-                className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-black/10 rounded-xl shadow-lg p-4 space-y-4"
-              >
+    <div
+      ref={menuRef}
+      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-black/10 rounded-xl shadow-lg p-4 space-y-4"
+    >
+      {links.map((link, i) => (
+        <Link
+          key={i}
+          href={link.path}
+          onClick={() => setMenuOpen(false)}
+          className="block text-black/80 hover:text-black"
+        >
+          {link.aName}
+        </Link>
+      ))}
 
-                {links.map((link, i) => (
-                  <Link
-                    key={i}
-                    href={link.path}
-                    onClick={() =>
-                      setMenuOpen(false)
-                    }
-                    className="block text-black/80 hover:text-black"
-                  >
-                    {link.aName}
-                  </Link>
-                ))}
-
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      router.push("/admin");
-                    }}
-                    className="flex items-center gap-2 w-full text-black"
-                  >
-                    <LayoutDashboard size={18} />
-                    Dashboard
-                  </button>
-                )}
-
-                {isLoggedIn ? (
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 w-full text-red-600"
-                  >
-                    <LogOut size={18} />
-                    Logout
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleLogin}
-                    className="flex items-center gap-2 w-full text-black"
-                  >
-                    <LogIn size={18} />
-                    Login
-                  </button>
-                )}
-
-              </div>
-            </>
-          )}
+      {isLoggedIn ? (
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 w-full text-red-600"
+        >
+          <LogOut size={18} />
+          Logout
+        </button>
+      ) : (
+        <button
+          onClick={handleLogin}
+          className="flex items-center gap-2 w-full text-black"
+        >
+          <LogIn size={18} />
+          Login
+        </button>
+      )}
+    </div>
+  </>
+)}
 
         </nav>
       </div>
