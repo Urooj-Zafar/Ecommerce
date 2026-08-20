@@ -49,9 +49,12 @@ const handleDelete = async (id) => {
     const res = await axios.delete(`/api/orders/${id}`);
 
     if (res.data.success) {
-      toast.success("Order deleted successfully");
-      fetchOrders();
-    } else {
+  setOrders((prevOrders) =>
+    prevOrders.filter((order) => order._id !== id)
+  );
+
+  toast.success("Order deleted successfully");
+} else {
       toast.error(res.data.message || "Deletion failed");
     }
   } catch (error) {

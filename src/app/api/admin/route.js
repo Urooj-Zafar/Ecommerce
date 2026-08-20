@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/Backend/db";
-import { UserModel } from "@/Backend/models/UserModel";
+import { UserModel } from "@/Backend/models";
 import { VerifyToken } from "@/helper/jwt";
 
 export async function PUT(req) {
