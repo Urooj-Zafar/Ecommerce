@@ -3,7 +3,7 @@ export default async function Page({ params }) {
   const id  = await params.id;
 
   let categories = [];
-  let product = null;
+  let product = [];
 
   try {
     const [categoriesRes, productRes] = await Promise.all([
