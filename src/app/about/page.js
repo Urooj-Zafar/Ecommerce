@@ -12,15 +12,7 @@ export default function About() {
       </section>
 
       <section className="max-w-6xl mx-auto px-6 py-20 flex flex-col md:flex-row items-center gap-12">
-        
-        <div className="flex-1">
-          <img
-            src="/Group.jpg"
-            alt="EliteShop Team"
-            className="rounded-xl border-4 border-white shadow-lg hover:scale-105 transition-transform duration-500"
-          />
-        </div>
-
+      
         {/* Text */}
         <div className="flex-1 space-y-6">
           <h2 className="text-3xl md:text-4xl font-semibold border-l-4 border-white pl-4">

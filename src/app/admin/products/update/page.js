@@ -45,7 +45,7 @@ export default function page({ product, categories }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+    <div className="flex justify-center items-center min-h-screen">
       <div className="w-full max-w-2xl p-10 bg-white border border-gray-300 rounded-t-3xl rounded-b-xl shadow-lg flex flex-col items-center">
         <h2 className="font-extrabold text-4xl mb-8">Update Product</h2>
 

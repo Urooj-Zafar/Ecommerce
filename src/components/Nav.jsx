@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -9,6 +7,7 @@ import {
   LogOut,
   LogIn,
   LayoutDashboard,
+  User,
   Menu,
   X,
 } from "lucide-react";
@@ -34,8 +33,7 @@ export default function Nav() {
   useEffect(() => {
     const loadUser = () => {
       try {
-        const storedUser =
-          localStorage.getItem("user");
+        const storedUser = localStorage.getItem("user");
 
         if (storedUser) {
           setUser(JSON.parse(storedUser));
@@ -43,37 +41,19 @@ export default function Nav() {
           setUser(null);
         }
       } catch (error) {
-        console.error(
-          "Failed to read user:",
-          error
-        );
-
+        console.error("Failed to read user:", error);
         setUser(null);
       }
     };
 
     loadUser();
 
-    window.addEventListener(
-      "userUpdated",
-      loadUser
-    );
-
-    window.addEventListener(
-      "storage",
-      loadUser
-    );
+    window.addEventListener("userUpdated", loadUser);
+    window.addEventListener("storage", loadUser);
 
     return () => {
-      window.removeEventListener(
-        "userUpdated",
-        loadUser
-      );
-
-      window.removeEventListener(
-        "storage",
-        loadUser
-      );
+      window.removeEventListener("userUpdated", loadUser);
+      window.removeEventListener("storage", loadUser);
     };
   }, []);
 
@@ -82,23 +62,18 @@ export default function Nav() {
   const isAdmin =
     user?.role?.toLowerCase() === "admin";
 
-
   const handleLogin = () => {
     setMenuOpen(false);
     setLoginOpen(true);
   };
 
- 
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", {
         method: "POST",
       });
     } catch (error) {
-      console.error(
-        "Logout error:",
-        error
-      );
+      console.error("Logout error:", error);
     }
 
     localStorage.removeItem("user");
@@ -112,7 +87,6 @@ export default function Nav() {
 
     router.push("/");
   };
-
 
   useEffect(() => {
     const updateCount = () => {
@@ -164,9 +138,7 @@ export default function Nav() {
       if (
         menuOpen &&
         menuRef.current &&
-        !menuRef.current.contains(
-          event.target
-        )
+        !menuRef.current.contains(event.target)
       ) {
         setMenuOpen(false);
       }
@@ -197,22 +169,15 @@ export default function Nav() {
 
   return (
     <>
-     
       <div className="sticky top-4 z-50 px-4">
         <nav className="relative flex justify-between items-center px-6 py-4 bg-white/70 backdrop-blur-xl border border-black/10 rounded-2xl shadow-lg">
 
-          {/* LOGO */}
-
           <div
             className="text-2xl font-extrabold tracking-tight cursor-pointer"
-            onClick={() =>
-              router.push("/")
-            }
+            onClick={() => router.push("/")}
           >
             EliteShop
           </div>
-
-          {/* DESKTOP LINKS */}
 
           <div className="hidden md:flex gap-8 font-medium">
             {links.map((link, i) => {
@@ -246,11 +211,7 @@ export default function Nav() {
             })}
           </div>
 
-          {/* RIGHT SECTION */}
-
-          <div className="flex items-center gap-5">
-
-            {/* ADMIN */}
+          <div className="flex items-center gap-3">
 
             {isAdmin && (
               <button
@@ -264,11 +225,10 @@ export default function Nav() {
               </button>
             )}
 
-            {/* CART */}
-
             <Link
               href="/cart"
               className="relative p-2 rounded-full hover:bg-black/10 transition"
+              title="Cart"
             >
               <ShoppingCart size={20} />
 
@@ -279,7 +239,17 @@ export default function Nav() {
               )}
             </Link>
 
-            {/* DESKTOP LOGIN / LOGOUT */}
+            {isLoggedIn && (
+              <button
+                onClick={() =>
+                  router.push("/profile")
+                }
+                className="p-2 rounded-full hover:bg-black/10 transition"
+                title="Profile"
+              >
+                <User size={20} />
+              </button>
+            )}
 
             {isLoggedIn ? (
               <button
@@ -298,8 +268,6 @@ export default function Nav() {
                 Login
               </button>
             )}
-
-            {/* MOBILE BUTTON */}
 
             <button
               className="md:hidden p-2 rounded-full hover:bg-black/10 transition"
@@ -345,26 +313,18 @@ export default function Nav() {
                   </Link>
                 ))}
 
-                {/* ADMIN */}
-
                 {isAdmin && (
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      router.push(
-                        "/admin"
-                      );
+                      router.push("/admin");
                     }}
                     className="flex items-center gap-2 w-full text-black"
                   >
-                    <LayoutDashboard
-                      size={18}
-                    />
+                    <LayoutDashboard size={18} />
                     Dashboard
                   </button>
                 )}
-
-                {/* LOGIN / LOGOUT */}
 
                 {isLoggedIn ? (
                   <button
@@ -387,6 +347,7 @@ export default function Nav() {
               </div>
             </>
           )}
+
         </nav>
       </div>
 

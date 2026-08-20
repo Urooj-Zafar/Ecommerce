@@ -159,7 +159,7 @@ export default function BuyNow() {
 
           total,
 
-          paymentMethod: "COD",
+          paymentMethod: "Cash On Delivery",
         }),
       });
 
@@ -224,7 +224,7 @@ export default function BuyNow() {
 
   return (
     <>
-      <div className="min-h-screen flex justify-center items-center bg-gray-50 p-8">
+      <div className="min-h-screen flex justify-center items-center p-8">
         <div className="max-w-5xl w-full bg-white border rounded-xl p-8">
 
           <h1 className="text-3xl font-bold mb-8">

@@ -143,7 +143,7 @@ export default function Products() {
     });
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Search Bar */}
         <div className="flex justify-center mb-8">
@@ -152,7 +152,7 @@ export default function Products() {
             placeholder="Search products..."
             value={searchQuery}
             onChange={handleSearch}
-            className="border border-gray-300 px-4 py-3 rounded-full w-full max-w-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"
+            className="border border-gray-300 px-4 py-3 rounded-full w-full max-w-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-black-500 transition"
           />
         </div>
 

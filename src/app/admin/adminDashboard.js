@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100 overflow-x-hidden">
+    <div className="flex flex-col md:flex-row min-h-screen overflow-x-hidden">
       
       {/* MAIN CONTENT */}
       <div className="flex-1 p-4 md:p-6 lg:p-10 overflow-auto">

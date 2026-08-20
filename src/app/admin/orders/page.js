@@ -1,8 +1,8 @@
 "use client"
-
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react"
 import axios from "axios"
-import { Eye } from "lucide-react"
+import {Trash2Icon } from "lucide-react";
 import React from "react"
 export default function OrdersPage() {
   const [orders, setOrders] = useState([])
@@ -38,12 +38,34 @@ export default function OrdersPage() {
         return "border-black"
     }
   }
+const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(
+    "Are you sure to delete this order?"
+  );
 
+  if (!confirmDelete) return;
+
+  try {
+    const res = await axios.delete(`/api/orders/${id}`);
+
+    if (res.data.success) {
+      toast.success("Order deleted successfully");
+      fetchOrders();
+    } else {
+      toast.error(res.data.message || "Deletion failed");
+    }
+  } catch (error) {
+    console.error("DELETE ORDER ERROR:", error);
+    toast.error(
+      error.response?.data?.message || "Delete failed"
+    );
+  }
+};
   if (loading) return <p className="p-10 text-center">Loading orders...</p>
 
   return (
     <div className="p-2 md:p-6">
-      <h1 className="text-2xl md:text-4xl font-bold mb-6 text-center">Orders</h1>
+      <h1 className="text-4xl md:text-4xl font-bold mb-6 text-center">Orders</h1>
 
       <div className="border border-black rounded-xl overflow-x-auto">
         <table className="w-full table-auto text-xs sm:text-sm md:text-base border-collapse">
@@ -101,12 +123,11 @@ export default function OrdersPage() {
                     </td>
                     <td className="p-2 md:p-3">
                       <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="border p-1.5 md:px-3 md:py-1 rounded-md hover:bg-black hover:text-white transition flex items-center gap-1"
-                      >
-                        <Eye size={14} />
-                        <span className="hidden sm:inline">View</span>
-                      </button>
+                    onClick={() => handleDelete(order._id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2Icon size={18} />
+                  </button>
                     </td>
                   </tr>
 

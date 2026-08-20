@@ -10,8 +10,7 @@ export async function POST(req) {
   try {
     await db();
 
-const token =
-      req.cookies.get("EliteShop")?.value;
+    const token = req.cookies.get("EliteShop")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -25,7 +24,7 @@ const token =
 
     const payload = VerifyToken(token);
 
-    if (!payload) {
+    if (!payload || !payload.id) {
       return NextResponse.json(
         {
           success: false,
@@ -35,7 +34,6 @@ const token =
       );
     }
 
-
     const body = await req.json();
 
     const {
@@ -44,7 +42,6 @@ const token =
       total,
       paymentMethod,
     } = body;
-
 
     if (
       !customer ||
@@ -62,9 +59,7 @@ const token =
       );
     }
 
-
     if (
-      !items ||
       !Array.isArray(items) ||
       items.length === 0
     ) {
@@ -77,14 +72,13 @@ const token =
       );
     }
 
-
     const order = await Order.create({
+      user: payload.id,
       customer,
       items,
       total,
       paymentMethod: paymentMethod || "COD",
     });
-
 
     const productsHTML = items
       .map(
@@ -95,207 +89,179 @@ const token =
             padding:15px;
             margin-bottom:15px;
           ">
+            <h3>${item.title}</h3>
 
-            ${
-              item.image
-                ? `
-                  <img
-                    src="${item.image}"
-                    alt="${item.title}"
-                    width="120"
-                    height="120"
-                    style="
-                      object-fit:cover;
-                      border-radius:8px;
-                      display:block;
-                      margin-bottom:10px;
-                    "
-                  />
-                `
-                : ""
-            }
-
-            <h3 style="margin:5px 0;">
-              ${item.title}
-            </h3>
-
-            <p style="margin:5px 0;">
+            <p>
               Price: $${item.price}
             </p>
 
-            <p style="margin:5px 0;">
+            <p>
               Quantity: ${item.qty}
             </p>
 
             ${
               item.size
-                ? `
-                  <p style="margin:5px 0;">
-                    Size: ${item.size}
-                  </p>
-                `
+                ? `<p>Size: ${item.size}</p>`
                 : ""
             }
 
             ${
               item.color
-                ? `
-                  <p style="margin:5px 0;">
-                    Color: ${item.color}
-                  </p>
-                `
+                ? `<p>Color: ${item.color}</p>`
                 : ""
             }
-
           </div>
         `
       )
       .join("");
 
-    const { data: emailData, error: emailError } =
-      await resend.emails.send({
-        from: "EliteShop <onboarding@resend.dev>",
+    let emailSent = false;
 
-        to: [customer.email],
+    try {
+      const { data, error } =
+        await resend.emails.send({
+          from:
+            process.env.EMAIL_FROM,
 
-        subject: `EliteShop Order Confirmation #${order._id}`,
+          to: [customer.email],
 
-        html: `
-          <div style="
-            font-family:Arial,sans-serif;
-            max-width:650px;
-            margin:auto;
-            padding:20px;
-            color:#222;
-          ">
+          subject: `EliteShop Order Confirmation #${order._id}`,
 
-            <h1 style="margin-bottom:5px;">
-              Order Confirmed 🎉
-            </h1>
+          html: `
+            <div style="
+              font-family:Arial,sans-serif;
+              max-width:650px;
+              margin:auto;
+              padding:20px;
+              color:#222;
+            ">
 
-            <p>
-              Hi ${customer.name},
-            </p>
+              <h1>
+                Order Confirmed 🎉
+              </h1>
 
-            <p>
-              Thank you for shopping with EliteShop.
-              Your order has been successfully placed.
-            </p>
+              <p>
+                Hi ${customer.name},
+              </p>
 
-            <hr />
+              <p>
+                Thank you for shopping with EliteShop.
+                Your order has been successfully placed.
+              </p>
 
-            <h2>Order Details</h2>
+              <hr />
 
-            <p>
-              <strong>Order ID:</strong>
-              ${order._id}
-            </p>
+              <h2>
+                Order Details
+              </h2>
 
-            <p>
-              <strong>Order Date:</strong>
-              ${new Date(
-                order.createdAt
-              ).toLocaleString()}
-            </p>
+              <p>
+                <strong>Order ID:</strong>
+                ${order._id}
+              </p>
 
-            <p>
-              <strong>Payment:</strong>
-              ${paymentMethod || "COD"}
-            </p>
+              <p>
+                <strong>Order Date:</strong>
+                ${new Date(
+                  order.createdAt
+                ).toLocaleString()}
+              </p>
 
-            <p>
-              <strong>Status:</strong>
-              ${order.status}
-            </p>
+              <p>
+                <strong>Payment:</strong>
+                ${paymentMethod || "COD"}
+              </p>
 
-            <hr />
+              <p>
+                <strong>Status:</strong>
+                ${order.status}
+              </p>
 
-            <h2>Products</h2>
+              <hr />
 
-            ${productsHTML}
+              <h2>
+                Products
+              </h2>
 
-            <hr />
+              ${productsHTML}
 
-            <h2>
-              Total: $${total}
-            </h2>
+              <hr />
 
-            <h2>Shipping Information</h2>
+              <h2>
+                Total: $${total}
+              </h2>
 
-            <p>
-              <strong>Name:</strong>
-              ${customer.name}
-            </p>
+              <h2>
+                Shipping Information
+              </h2>
 
-            <p>
-              <strong>Email:</strong>
-              ${customer.email}
-            </p>
+              <p>
+                <strong>Name:</strong>
+                ${customer.name}
+              </p>
 
-            <p>
-              <strong>Address:</strong>
-              ${customer.address}
-            </p>
+              <p>
+                <strong>Email:</strong>
+                ${customer.email}
+              </p>
 
-            <p>
-              <strong>City:</strong>
-              ${customer.city}
-            </p>
+              <p>
+                <strong>Address:</strong>
+                ${customer.address}
+              </p>
 
-            <hr />
+              <p>
+                <strong>City:</strong>
+                ${customer.city}
+              </p>
 
-            <p>
-              We will process your order and notify you
-              when your order is shipped.
-            </p>
+              <hr />
 
-            <p>
-              Thank you for choosing EliteShop.
-            </p>
+              <p>
+                We will process your order and notify you
+                when your order is shipped.
+              </p>
 
-          </div>
-        `,
-      });
+              <p>
+                Thank you for choosing EliteShop.
+              </p>
 
+            </div>
+          `,
+        });
 
-    if (emailError) {
+      if (error) {
+        console.error(
+          "RESEND EMAIL ERROR:",
+          error
+        );
+      } else {
+        console.log(
+          "Confirmation email sent:",
+          data
+        );
+
+        emailSent = true;
+      }
+    } catch (emailError) {
       console.error(
-        "RESEND EMAIL ERROR:",
+        "EMAIL ERROR:",
         emailError
       );
-
-      return NextResponse.json(
-        {
-          success: true,
-          message:
-            "Order placed, but confirmation email could not be sent.",
-          order,
-          emailError:
-            emailError.message,
-        },
-        { status: 201 }
-      );
     }
-
-  
-    console.log(
-      "Confirmation email sent:",
-      emailData
-    );
 
     return NextResponse.json(
       {
         success: true,
-        message:
-          "Order placed successfully and confirmation email sent",
+        message: emailSent
+          ? "Order placed successfully and confirmation email sent"
+          : "Order placed successfully, but confirmation email could not be sent",
         order,
-        email: emailData,
+        emailSent,
       },
       { status: 201 }
     );
-
   } catch (error) {
-
     console.error(
       "ORDER ERROR:",
       error
@@ -306,6 +272,34 @@ const token =
         success: false,
         message:
           "Server error while placing order",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(req) {
+  try {
+    await db();
+
+    const orders = await Order.find()
+      .populate("items.product")
+      .sort({ createdAt: -1 });
+
+    return NextResponse.json(
+      {
+        success: true,
+        orders,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("GET ORDERS ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Server error while fetching orders",
       },
       { status: 500 }
     );

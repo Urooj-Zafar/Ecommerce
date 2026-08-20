@@ -57,7 +57,6 @@ export async function POST(req) {
       );
     }
 
-    // Generate JWT
     const token = GenAccessToken({
       id: user._id.toString(),
       userName: user.userName,
@@ -67,7 +66,6 @@ export async function POST(req) {
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
-
       user: {
         _id: user._id,
         fullName: user.fullName,
@@ -78,7 +76,6 @@ export async function POST(req) {
       },
     });
 
-    // IMPORTANT: create cookie
     response.cookies.set("EliteShop", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -88,7 +85,6 @@ export async function POST(req) {
     });
 
     return response;
-
   } catch (error) {
     console.error("LOGIN ERROR:", error);
 

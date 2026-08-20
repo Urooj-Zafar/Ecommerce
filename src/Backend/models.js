@@ -83,9 +83,14 @@ const userSchema = new mongoose.Schema(
 export const UserModel =
   mongoose.models.User ||
   mongoose.model("User", userSchema);
-// ORDER
 const orderSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     customer: {
       name: String,
       email: String,
@@ -102,7 +107,7 @@ const orderSchema = new mongoose.Schema(
 
         title: String,
         price: Number,
-        image: String, // Cloudinary URL
+        image: String,
         size: String,
         color: String,
         qty: Number,
