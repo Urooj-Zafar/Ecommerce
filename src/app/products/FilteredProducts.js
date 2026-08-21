@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 export default function FilteredProducts() {
   const router = useRouter();
@@ -12,14 +18,27 @@ export default function FilteredProducts() {
   const categoryFilter = searchParams.get("category");
 
   const [allProducts, setAllProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+
   const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [sortBy, setSortBy] = useState("default");
+
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+
   const [hoveredIndex, setHoveredIndex] = useState({});
 
+  const [mobileFilters, setMobileFilters] = useState(false);
+
+  const [cart, setCart] = useState([]);
+
   const itemsPerPage = 12;
+
+  // ==========================================
+  // FETCH PRODUCTS
+  // ==========================================
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -33,23 +52,6 @@ export default function FilteredProducts() {
           : [];
 
         setAllProducts(products);
-
-        if (categoryFilter) {
-          const filtered = products.filter((product) => {
-            const productCategory = product?.category;
-
-            if (typeof productCategory === "object") {
-              return productCategory?._id === categoryFilter;
-            }
-
-            return productCategory === categoryFilter;
-          });
-
-          setFilteredProducts(filtered);
-        } else {
-          setFilteredProducts(products);
-        }
-
         setCurrentPage(1);
       } catch (error) {
         console.error(
@@ -58,14 +60,17 @@ export default function FilteredProducts() {
         );
 
         setAllProducts([]);
-        setFilteredProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [categoryFilter]);
+  }, []);
+
+  // ==========================================
+  // LOAD CART
+  // ==========================================
 
   useEffect(() => {
     try {
@@ -80,48 +85,145 @@ export default function FilteredProducts() {
     }
   }, []);
 
-  const handleSearch = (e) => {
-    const query = e.target.value.toLowerCase();
+  // ==========================================
+  // CATEGORY FILTER
+  // ==========================================
 
-    setSearchQuery(query);
-    setCurrentPage(1);
-
-    let products = [...allProducts];
-
-    if (categoryFilter) {
-      products = products.filter((product) => {
-        const productCategory = product?.category;
-
-        if (typeof productCategory === "object") {
-          return productCategory?._id === categoryFilter;
-        }
-
-        return productCategory === categoryFilter;
-      });
+  const belongsToCategory = (product) => {
+    if (!categoryFilter) {
+      return true;
     }
 
-    if (query) {
-      products = products.filter((product) =>
-        product?.title?.toLowerCase().includes(query)
+    const category = product?.category;
+
+    if (
+      typeof category === "object" &&
+      category !== null
+    ) {
+      return (
+        category?._id === categoryFilter ||
+        category?.id === categoryFilter
       );
     }
 
-    setFilteredProducts(products);
+    return category === categoryFilter;
   };
+
+  // ==========================================
+  // FILTER + SORT PRODUCTS
+  // ==========================================
+
+  const filteredProducts = useMemo(() => {
+    let products = [...allProducts];
+
+    // Category
+    products = products.filter(belongsToCategory);
+
+    // Search
+    if (searchQuery.trim()) {
+      const query = searchQuery
+        .toLowerCase()
+        .trim();
+
+      products = products.filter((product) =>
+        product?.title
+          ?.toLowerCase()
+          .includes(query)
+      );
+    }
+
+    // Minimum price
+    if (minPrice !== "") {
+      products = products.filter(
+        (product) =>
+          Number(product?.price || 0) >=
+          Number(minPrice)
+      );
+    }
+
+    // Maximum price
+    if (maxPrice !== "") {
+      products = products.filter(
+        (product) =>
+          Number(product?.price || 0) <=
+          Number(maxPrice)
+      );
+    }
+
+    // Sorting
+    if (sortBy === "price-low") {
+      products.sort(
+        (a, b) =>
+          Number(a?.price || 0) -
+          Number(b?.price || 0)
+      );
+    }
+
+    if (sortBy === "price-high") {
+      products.sort(
+        (a, b) =>
+          Number(b?.price || 0) -
+          Number(a?.price || 0)
+      );
+    }
+
+    if (sortBy === "newest") {
+      products.sort(
+        (a, b) =>
+          new Date(b?.createdAt || 0) -
+          new Date(a?.createdAt || 0)
+      );
+    }
+
+    return products;
+  }, [
+    allProducts,
+    categoryFilter,
+    searchQuery,
+    minPrice,
+    maxPrice,
+    sortBy,
+  ]);
+
+  // ==========================================
+  // PAGINATION
+  // ==========================================
+
+  const totalPages = Math.ceil(
+    filteredProducts.length / itemsPerPage
+  );
+
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // ==========================================
+  // SEARCH
+  // ==========================================
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  // ==========================================
+  // ADD TO CART
+  // ==========================================
 
   const addToCart = (product) => {
     const existing = cart.find(
-      (item) => item._id === product._id
+      (item) => item?._id === product?._id
     );
 
     let newCart;
 
     if (existing) {
       newCart = cart.map((item) =>
-        item._id === product._id
+        item?._id === product?._id
           ? {
               ...item,
-              qty: (item.qty || 0) + 1,
+              qty: (item.qty || 1) + 1,
             }
           : item
       );
@@ -142,178 +244,1109 @@ export default function FilteredProducts() {
       JSON.stringify(newCart)
     );
 
-    window.dispatchEvent(new Event("cartUpdated"));
+    window.dispatchEvent(
+      new Event("cartUpdated")
+    );
   };
+
+  // ==========================================
+  // RESET FILTERS
+  // ==========================================
+
+  const resetFilters = () => {
+    setMinPrice("");
+    setMaxPrice("");
+    setSearchQuery("");
+    setSortBy("default");
+    setCurrentPage(1);
+  };
+
+  // ==========================================
+  // DISCOUNT
+  // ==========================================
+
+  const getDiscount = (product) => {
+    if (product?.discount) {
+      return Number(product.discount);
+    }
+
+    if (
+      product?.originalPrice &&
+      product?.price
+    ) {
+      const discount =
+        ((Number(product.originalPrice) -
+          Number(product.price)) /
+          Number(product.originalPrice)) *
+        100;
+
+      return Math.round(discount);
+    }
+
+    return 0;
+  };
+
+  // ==========================================
+  // LOADING
+  // ==========================================
 
   if (loading) {
     return (
-      <p className="text-center mt-10 text-lg">
-        Loading products...
-      </p>
+      <div className="min-h-screen bg-gray-100 pt-28">
+        <div className="max-w-[1400px] mx-auto px-4">
+
+          <div className="h-10 w-48 bg-gray-200 animate-pulse mb-6 rounded" />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className="bg-white animate-pulse"
+                >
+                  <div className="aspect-square bg-gray-200" />
+
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded" />
+                    <div className="h-4 w-2/3 bg-gray-200 rounded" />
+                    <div className="h-5 w-1/2 bg-gray-200 rounded" />
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      </div>
     );
   }
 
-  const totalPages = Math.ceil(
-    filteredProducts.length / itemsPerPage
-  );
-
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   return (
-    <div className="p-2 pt-30 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-center mb-8">
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={handleSearch}
-            className="border border-gray-300 px-4 py-3 rounded-full w-full max-w-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-black transition"
-          />
+    <div className="min-h-screen bg-gray-100 pt-28 pb-12">
+
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
+
+        {/* ==========================================
+            SEARCH BAR
+        ========================================== */}
+
+        <div className="bg-white p-3 mb-4 shadow-sm">
+
+          <div className="flex gap-2">
+
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={handleSearch}
+              className="
+                flex-1
+                border
+                border-gray-300
+                px-4
+                py-3
+                text-sm
+                outline-none
+                focus:border-black
+                transition
+              "
+            />
+
+            <button
+              type="button"
+              className="
+                bg-black
+                text-white
+                px-6
+                py-3
+                font-medium
+                hover:bg-gray-800
+                transition
+              "
+            >
+              Search
+            </button>
+
+          </div>
         </div>
 
-        {paginatedProducts.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8">
-            {paginatedProducts.map((product) => {
-              const images = Array.isArray(product?.images)
-                ? product.images
-                : [];
+        {/* ==========================================
+            MOBILE FILTER BUTTON
+        ========================================== */}
 
-              const index =
-                hoveredIndex[product._id] || 0;
+        <button
+          type="button"
+          onClick={() =>
+            setMobileFilters(true)
+          }
+          className="
+            lg:hidden
+            flex
+            items-center
+            justify-center
+            gap-2
+            bg-white
+            px-4
+            py-3
+            mb-4
+            w-full
+            shadow-sm
+            text-sm
+            font-medium
+            border
+            border-gray-200
+          "
+        >
+          <SlidersHorizontal size={18} />
 
-              const imageSrc =
-                images[index] ||
-                images[0] ||
-                "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true";
+          Filters & Sort
+        </button>
 
-              return (
-                <motion.div
-                  key={product._id}
-                  initial={{
-                    opacity: 0,
-                    y: 50,
-                  }}
-                  whileInView={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  viewport={{
-                    once: true,
-                  }}
-                  transition={{
-                    duration: 0.4,
-                  }}
-                  className="relative border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-md hover:shadow-xl hover:scale-105 transition"
+        <div className="flex gap-5">
+
+          {/* ==========================================
+              DESKTOP FILTER SIDEBAR
+          ========================================== */}
+
+          <aside className="hidden lg:block w-[230px] shrink-0">
+
+            <div className="bg-white p-4 sticky top-24 shadow-sm">
+
+              <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+
+                <h2 className="font-semibold text-gray-800">
+                  Filters
+                </h2>
+
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="
+                    text-xs
+                    text-gray-500
+                    hover:text-black
+                  "
                 >
-                  <div
-                    className="relative w-full h-80 cursor-pointer"
-                    onMouseEnter={() => {
-                      if (images.length > 1) {
-                        setHoveredIndex((prev) => ({
-                          ...prev,
-                          [product._id]: 1,
-                        }));
-                      }
+                  Reset
+                </button>
+
+              </div>
+
+              {/* PRICE */}
+
+              <div className="py-5">
+
+                <h3 className="font-medium text-sm mb-4">
+                  Price
+                </h3>
+
+                <div className="flex gap-2">
+
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice}
+                    onChange={(e) => {
+                      setMinPrice(
+                        e.target.value
+                      );
+                      setCurrentPage(1);
                     }}
-                    onMouseLeave={() => {
-                      setHoveredIndex((prev) => ({
-                        ...prev,
-                        [product._id]: 0,
-                      }));
+                    className="
+                      w-full
+                      border
+                      border-gray-300
+                      px-2
+                      py-2
+                      text-xs
+                      outline-none
+                      focus:border-black
+                    "
+                  />
+
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice}
+                    onChange={(e) => {
+                      setMaxPrice(
+                        e.target.value
+                      );
+                      setCurrentPage(1);
                     }}
+                    className="
+                      w-full
+                      border
+                      border-gray-300
+                      px-2
+                      py-2
+                      text-xs
+                      outline-none
+                      focus:border-black
+                    "
+                  />
+
+                </div>
+              </div>
+
+              {/* QUICK PRICE FILTERS */}
+
+              <div className="border-t border-gray-200 pt-5">
+
+                <h3 className="font-medium text-sm mb-3">
+                  Quick Price
+                </h3>
+
+                <div className="space-y-2">
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinPrice("");
+                      setMaxPrice("1000");
+                      setCurrentPage(1);
+                    }}
+                    className="
+                      block
+                      text-sm
+                      text-gray-600
+                      hover:text-black
+                    "
                   >
-                    <AnimatePresence initial={false}>
-                      <motion.img
-                        key={imageSrc}
-                        src={imageSrc}
-                        alt={product?.title || "Product"}
-                        className="w-full h-80 object-cover absolute top-0 left-0"
+                    Under Rs. 1,000
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinPrice("1000");
+                      setMaxPrice("5000");
+                      setCurrentPage(1);
+                    }}
+                    className="
+                      block
+                      text-sm
+                      text-gray-600
+                      hover:text-black
+                    "
+                  >
+                    Rs. 1,000 - 5,000
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinPrice("5000");
+                      setMaxPrice("10000");
+                      setCurrentPage(1);
+                    }}
+                    className="
+                      block
+                      text-sm
+                      text-gray-600
+                      hover:text-black
+                    "
+                  >
+                    Rs. 5,000 - 10,000
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinPrice("10000");
+                      setMaxPrice("");
+                      setCurrentPage(1);
+                    }}
+                    className="
+                      block
+                      text-sm
+                      text-gray-600
+                      hover:text-black
+                    "
+                  >
+                    Above Rs. 10,000
+                  </button>
+
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* ==========================================
+              PRODUCTS
+          ========================================== */}
+
+          <main className="flex-1 min-w-0">
+
+            {/* SORT BAR */}
+
+            <div className="
+              bg-white
+              px-4
+              py-3
+              mb-4
+              flex
+              flex-wrap
+              items-center
+              justify-between
+              gap-3
+              shadow-sm
+            ">
+
+              <div>
+                <span className="text-sm text-gray-600">
+                  {filteredProducts.length} Products
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+
+                <span className="text-sm text-gray-500">
+                  Sort By:
+                </span>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    border
+                    border-gray-300
+                    px-3
+                    py-2
+                    text-sm
+                    outline-none
+                    bg-white
+                    focus:border-black
+                  "
+                >
+                  <option value="default">
+                    Popular
+                  </option>
+
+                  <option value="newest">
+                    Newest
+                  </option>
+
+                  <option value="price-low">
+                    Price Low to High
+                  </option>
+
+                  <option value="price-high">
+                    Price High to Low
+                  </option>
+                </select>
+
+              </div>
+            </div>
+
+            {/* ==========================================
+                PRODUCT GRID
+            ========================================== */}
+
+            {paginatedProducts.length > 0 ? (
+
+              <div className="
+                grid
+                grid-cols-2
+                sm:grid-cols-3
+                md:grid-cols-4
+                lg:grid-cols-6
+                gap-3
+              ">
+
+                {paginatedProducts.map(
+                  (product, productIndex) => {
+
+                    const images = Array.isArray(
+                      product?.images
+                    )
+                      ? product.images
+                      : [];
+
+                    const imageIndex =
+                      hoveredIndex[
+                        product?._id
+                      ] || 0;
+
+                    const imageSrc =
+                      images[imageIndex] ||
+                      images[0] ||
+                      "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true";
+
+                    const discount =
+                      getDiscount(product);
+
+                    return (
+                      <motion.div
+                        key={product?._id}
                         initial={{
                           opacity: 0,
+                          y: 15,
                         }}
                         animate={{
                           opacity: 1,
-                        }}
-                        exit={{
-                          opacity: 0,
+                          y: 0,
                         }}
                         transition={{
-                          duration: 0.4,
+                          duration: 0.25,
+                          delay:
+                            productIndex * 0.02,
                         }}
+                        className="
+                          bg-white
+                          cursor-pointer
+                          group
+                          overflow-hidden
+                          border
+                          border-transparent
+                          hover:border-gray-300
+                          hover:shadow-md
+                          transition
+                        "
                         onClick={() =>
                           router.push(
-                            `/products/${product._id}`
+                            `/products/${product?._id}`
                           )
                         }
-                      />
-                    </AnimatePresence>
-                  </div>
+                      >
 
-                  <div className="p-4 flex flex-col gap-2">
-                    <h2 className="text-lg font-semibold text-gray-800">
-                      {product?.title || "Untitled Product"}
-                    </h2>
+                        {/* PRODUCT IMAGE */}
 
-                    <p className="text-red-600 font-medium">
-                      Price ${product?.price || 0}
-                    </p>
+                        <div
+                          className="
+                            relative
+                            aspect-square
+                            bg-gray-50
+                            overflow-hidden
+                          "
+                          onMouseEnter={() => {
+                            if (
+                              images.length > 1
+                            ) {
+                              setHoveredIndex(
+                                (prev) => ({
+                                  ...prev,
+                                  [product?._id]: 1,
+                                })
+                              );
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredIndex(
+                              (prev) => ({
+                                ...prev,
+                                [product?._id]: 0,
+                              })
+                            );
+                          }}
+                        >
 
+                          <img
+                            src={imageSrc}
+                            alt={
+                              product?.title ||
+                              "Product"
+                            }
+                            className="
+                              w-full
+                              h-full
+                              object-cover
+                              group-hover:scale-105
+                              transition-transform
+                              duration-300
+                            "
+                          />
+
+                          {/* DISCOUNT */}
+
+                          {discount > 0 && (
+                            <div className="
+                              absolute
+                              top-2
+                              left-2
+                              bg-black
+                              text-white
+                              text-[10px]
+                              px-2
+                              py-1
+                              font-medium
+                            ">
+                              -{discount}%
+                            </div>
+                          )}
+
+                        </div>
+
+                        {/* PRODUCT DETAILS */}
+
+                        <div className="p-2">
+
+                          {/* TITLE */}
+
+                          <h2 className="
+                            text-[13px]
+                            leading-5
+                            text-gray-800
+                            line-clamp-2
+                            min-h-[40px]
+                            group-hover:text-black
+                          ">
+                            {product?.title ||
+                              "Untitled Product"}
+                          </h2>
+
+                          {/* PRICE */}
+
+                          <div className="mt-2">
+
+                            <span className="
+                              text-black
+                              text-lg
+                              font-semibold
+                            ">
+                              Rs.{" "}
+                              {Number(
+                                product?.price || 0
+                              ).toLocaleString()}
+                            </span>
+
+                          </div>
+
+                          {/* ORIGINAL PRICE */}
+
+                          {product?.originalPrice &&
+                            Number(
+                              product.originalPrice
+                            ) >
+                              Number(
+                                product.price
+                              ) && (
+
+                              <div className="
+                                flex
+                                items-center
+                                gap-2
+                              ">
+
+                                <span className="
+                                  text-xs
+                                  text-gray-400
+                                  line-through
+                                ">
+                                  Rs.{" "}
+                                  {Number(
+                                    product.originalPrice
+                                  ).toLocaleString()}
+                                </span>
+
+                                {discount > 0 && (
+                                  <span className="
+                                    text-xs
+                                    text-gray-500
+                                  ">
+                                    -{discount}%
+                                  </span>
+                                )}
+
+                              </div>
+                          )}
+
+                          {/* DELIVERY */}
+
+                          <div className="
+                            text-[11px]
+                            text-gray-400
+                          ">
+                            Free Delivery
+                          </div>
+
+                        </div>
+                        <button
+  type="button"
+  onClick={(e) => {
+    e.stopPropagation();
+    addToCart(product);
+  }}
+  className="
+    w-[calc(100%-16px)]
+    mx-2
+    py-2.5
+    mb-2
+    bg-black
+    text-white
+    text-sm
+    font-medium
+    hover:bg-gray-800
+    transition
+  "
+>
+  Add to Cart
+</button>
+                      </motion.div>
+                    );
+                  }
+                )}
+
+              </div>
+
+            ) : (
+
+              <div className="
+                bg-white
+                py-20
+                text-center
+              ">
+
+                <p className="text-gray-500">
+                  No products found.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="
+                    mt-4
+                    text-black
+                    text-sm
+                    underline
+                  "
+                >
+                  Clear Filters
+                </button>
+
+              </div>
+            )}
+
+          
+
+            {totalPages > 1 && (
+
+              <div className="
+                flex
+                justify-center
+                items-center
+                gap-2
+                mt-8
+              ">
+
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.max(page - 1, 1)
+                    )
+                  }
+                  className="
+                    w-10
+                    h-10
+                    flex
+                    items-center
+                    justify-center
+                    bg-white
+                    border
+                    border-gray-300
+                    hover:bg-black
+                    hover:text-white
+                    disabled:opacity-40
+                    disabled:hover:bg-white
+                    disabled:hover:text-black
+                    transition
+                  "
+                >
+                  <ChevronLeft size={18} />
+                </button>
+
+                {Array.from({
+                  length: totalPages,
+                }).map((_, index) => {
+
+                  const page = index + 1;
+
+                  if (
+                    totalPages > 7 &&
+                    page > 3 &&
+                    page < totalPages - 2
+                  ) {
+                    if (page === 4) {
+                      return (
+                        <span
+                          key={page}
+                          className="px-2 text-gray-500"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+
+                    return null;
+                  }
+
+                  return (
                     <button
+                      key={page}
                       type="button"
-                      onClick={() => addToCart(product)}
-                      className="mt-2 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition font-medium"
+                      onClick={() =>
+                        setCurrentPage(page)
+                      }
+                      className={`
+                        w-10
+                        h-10
+                        text-sm
+                        border
+                        transition
+                        ${
+                          currentPage === page
+                            ? "bg-black text-white border-black"
+                            : "bg-white border-gray-300 text-gray-700 hover:bg-black hover:text-white"
+                        }
+                      `}
                     >
-                      Add to Cart
+                      {page}
                     </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-center mt-10 text-lg">
-            No products found.
-          </p>
-        )}
+                  );
+                })}
 
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-12">
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentPage((p) =>
-                  Math.max(p - 1, 1)
-                )
-              }
-              disabled={currentPage === 1}
-              className="px-4 py-2 border border-gray-400 rounded-full hover:bg-black hover:text-white transition disabled:opacity-50"
-            >
-              Prev
-            </button>
+                <button
+                  type="button"
+                  disabled={
+                    currentPage === totalPages
+                  }
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.min(
+                        page + 1,
+                        totalPages
+                      )
+                    )
+                  }
+                  className="
+                    w-10
+                    h-10
+                    flex
+                    items-center
+                    justify-center
+                    bg-white
+                    border
+                    border-gray-300
+                    hover:bg-black
+                    hover:text-white
+                    disabled:opacity-40
+                    disabled:hover:bg-white
+                    disabled:hover:text-black
+                    transition
+                  "
+                >
+                  <ChevronRight size={18} />
+                </button>
 
-            <span className="font-medium">
-              Page {currentPage} of {totalPages}
-            </span>
+              </div>
+            )}
 
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentPage((p) =>
-                  Math.min(p + 1, totalPages)
-                )
-              }
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 border border-gray-400 rounded-full hover:bg-black hover:text-white transition disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        )}
+          </main>
+        </div>
       </div>
+
+     
+
+      {mobileFilters && (
+        <>
+          <div
+            className="
+              fixed
+              inset-0
+              bg-black/50
+              z-[80]
+            "
+            onClick={() =>
+              setMobileFilters(false)
+            }
+          />
+
+          <div className="
+            fixed
+            bottom-0
+            left-0
+            right-0
+            bg-white
+            z-[90]
+            rounded-t-2xl
+            p-5
+            max-h-[80vh]
+            overflow-y-auto
+          ">
+
+            {/* HEADER */}
+
+            <div className="
+              flex
+              items-center
+              justify-between
+              mb-6
+            ">
+
+              <h2 className="
+                font-semibold
+                text-lg
+              ">
+                Filters & Sort
+              </h2>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setMobileFilters(false)
+                }
+              >
+                <X size={22} />
+              </button>
+
+            </div>
+
+            {/* SORT */}
+
+            <div className="mb-6">
+
+              <label className="
+                block
+                text-sm
+                font-medium
+                mb-2
+              ">
+                Sort By
+              </label>
+
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="
+                  w-full
+                  border
+                  border-gray-300
+                  px-3
+                  py-3
+                  text-sm
+                  outline-none
+                  focus:border-black
+                "
+              >
+                <option value="default">
+                  Popular
+                </option>
+
+                <option value="newest">
+                  Newest
+                </option>
+
+                <option value="price-low">
+                  Price Low to High
+                </option>
+
+                <option value="price-high">
+                  Price High to Low
+                </option>
+              </select>
+
+            </div>
+
+            {/* PRICE */}
+
+            <div className="mb-6">
+
+              <h3 className="
+                text-sm
+                font-medium
+                mb-3
+              ">
+                Price Range
+              </h3>
+
+              <div className="flex gap-2">
+
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minPrice}
+                  onChange={(e) => {
+                    setMinPrice(
+                      e.target.value
+                    );
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    w-full
+                    border
+                    border-gray-300
+                    px-3
+                    py-3
+                    text-sm
+                    outline-none
+                    focus:border-black
+                  "
+                />
+
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxPrice}
+                  onChange={(e) => {
+                    setMaxPrice(
+                      e.target.value
+                    );
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    w-full
+                    border
+                    border-gray-300
+                    px-3
+                    py-3
+                    text-sm
+                    outline-none
+                    focus:border-black
+                  "
+                />
+
+              </div>
+            </div>
+
+            {/* QUICK PRICE */}
+
+            <div>
+
+              <h3 className="
+                text-sm
+                font-medium
+                mb-3
+              ">
+                Quick Price
+              </h3>
+
+              <div className="space-y-3">
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice("");
+                    setMaxPrice("1000");
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    block
+                    text-sm
+                    text-gray-600
+                    hover:text-black
+                  "
+                >
+                  Under Rs. 1,000
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice("1000");
+                    setMaxPrice("5000");
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    block
+                    text-sm
+                    text-gray-600
+                    hover:text-black
+                  "
+                >
+                  Rs. 1,000 - 5,000
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice("5000");
+                    setMaxPrice("10000");
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    block
+                    text-sm
+                    text-gray-600
+                    hover:text-black
+                  "
+                >
+                  Rs. 5,000 - 10,000
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMinPrice("10000");
+                    setMaxPrice("");
+                    setCurrentPage(1);
+                  }}
+                  className="
+                    block
+                    text-sm
+                    text-gray-600
+                    hover:text-black
+                  "
+                >
+                  Above Rs. 10,000
+                </button>
+
+              </div>
+            </div>
+
+            {/* BUTTONS */}
+
+            <div className="
+              flex
+              gap-3
+              mt-8
+            ">
+
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="
+                  flex-1
+                  border
+                  border-black
+                  py-3
+                  text-sm
+                  hover:bg-black
+                  hover:text-white
+                  transition
+                "
+              >
+                Reset
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setMobileFilters(false)
+                }
+                className="
+                  flex-1
+                  bg-black
+                  text-white
+                  py-3
+                  text-sm
+                  hover:bg-gray-800
+                  transition
+                "
+              >
+                Apply
+              </button>
+
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

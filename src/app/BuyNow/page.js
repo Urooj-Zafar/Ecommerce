@@ -224,8 +224,8 @@ export default function BuyNow() {
 
   return (
     <>
-      <div className="min-h-screen flex justify-center items-center p-8">
-        <div className="max-w-5xl w-full bg-white border rounded-xl p-8">
+      <div className="min-h-screen flex justify-center items-center pt-30 px-3 py-3">
+        <div className="max-w-5xl w-full bg-white rounded-xl p-8">
 
           <h1 className="text-3xl font-bold mb-8">
             Checkout
@@ -264,7 +264,7 @@ export default function BuyNow() {
                         </h3>
 
                         <p className="text-gray-600">
-                          ${item.price}
+                          Rs. {item.price}
                         </p>
 
                         {item.selectedSize && (
@@ -318,7 +318,7 @@ export default function BuyNow() {
               </div>
 
               <p className="text-2xl font-bold mt-6">
-                Total: ${total}
+                Total: Rs. {total}
               </p>
             </div>
 

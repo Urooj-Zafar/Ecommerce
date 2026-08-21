@@ -39,28 +39,11 @@ export default function Footer() {
           Don't Miss Out!
         </h2>
 
-        <p className="text-gray-400 max-w-xl mx-auto text-sm md:text-base mb-10 leading-relaxed">
+        <p className="text-gray-400 max-w-xl mx-auto text-sm md:text-base leading-relaxed">
           Be the first to hear about our hot drops, secret sales & more.
-          Join the EliteShop fam now!
+          Join the EliteShop now!
         </p>
 
-        {/* Input */}
-        <form onSubmit={handleSubmit} className="flex justify-center">
-        <div className="flex border border-gray-100 p-2 items-center rounded">
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            className="bg-transparent outline-none w-40 text-sm placeholder:text-gray-500"
-          />
-          <button
-            type="submit"
-            className="ml-3 text-lg transition hover:translate-x-1"
-          >
-            →
-          </button>
-        </div>
-      </form>
 
       </div>
 

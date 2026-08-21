@@ -25,7 +25,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="text-black overflow-x-hidden">
+    <div className="text-black overflow-x-hidden pt-30">
 
       {/* HERO */}
       <section className="relative h-[250px] sm:h-[400px] md:h-[550px] xl:h-[90vh] md:h-screen flex items-center justify-center text-white text-center overflow-hidden">

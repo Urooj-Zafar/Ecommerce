@@ -84,7 +84,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className="p-2 pt-30 min-h-screen">
 
       <h1 className="text-4xl font-bold mb-8">
         Your Cart
@@ -96,7 +96,7 @@ export default function CartPage() {
 
           <div
             key={item._id}
-            className="flex gap-6 border border-black rounded-xl p-4 bg-white"
+            className="flex gap-6 rounded-xl p-4 bg-white"
           >
 
             <img
@@ -114,7 +114,7 @@ export default function CartPage() {
                 </h2>
 
                 <p className="text-gray-600">
-                  ${item.price}
+                  Rs. {item.price}
                 </p>
 
                 {item.selectedSize && (
@@ -180,7 +180,7 @@ export default function CartPage() {
 
       </div>
 
-      <div className="mt-8 border border-black rounded-xl p-6 bg-white max-w-md">
+      <div className="mt-2  rounded-xl p-6 bg-white max-w-md">
 
         <h2 className="text-2xl font-bold mb-4">
           Summary
@@ -188,17 +188,17 @@ export default function CartPage() {
 
         <div className="flex justify-between mb-2">
           <span>Subtotal:</span>
-          <span>${totalPrice}</span>
+          <span>Rs. {totalPrice}</span>
         </div>
 
         <div className="flex justify-between mb-2">
           <span>Shipping:</span>
-          <span>$0</span>
+          <span>Rs. 0</span>
         </div>
 
         <div className="flex justify-between font-bold text-lg border-t border-black pt-2">
           <span>Total:</span>
-          <span>${totalPrice}</span>
+          <span>Rs. {totalPrice}</span>
         </div>
 
         <button
