@@ -163,7 +163,7 @@ export default function FilteredProducts() {
   );
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className="p-2 pt-30 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-center mb-8">
           <input

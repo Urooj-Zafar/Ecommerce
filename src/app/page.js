@@ -25,7 +25,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="text-black overflow-x-hidden py-5">
+    <div className="text-black overflow-x-hidden">
 
       {/* HERO */}
       <section className="relative h-[250px] sm:h-[400px] md:h-[550px] xl:h-[90vh] md:h-screen flex items-center justify-center text-white text-center overflow-hidden">
@@ -57,10 +57,10 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-  <section className="bg-gray-50 ">
+        <section className="bg-gray-50 ">
         <div>
           
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-center pt-10">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-center pt-5">
             Explore Categories
           </h2>
 

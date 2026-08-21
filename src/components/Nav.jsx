@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +32,9 @@ export default function Nav() {
     { path: "/products", aName: "Products" },
   ];
 
+  // =========================
+  // LOAD USER
+  // =========================
   useEffect(() => {
     const loadUser = () => {
       try {
@@ -62,11 +67,17 @@ export default function Nav() {
   const isAdmin =
     user?.role?.toLowerCase() === "admin";
 
+  // =========================
+  // LOGIN
+  // =========================
   const handleLogin = () => {
     setMenuOpen(false);
     setLoginOpen(true);
   };
 
+  // =========================
+  // LOGOUT
+  // =========================
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", {
@@ -81,20 +92,19 @@ export default function Nav() {
     setUser(null);
     setMenuOpen(false);
 
-    window.dispatchEvent(
-      new Event("userUpdated")
-    );
+    window.dispatchEvent(new Event("userUpdated"));
 
     router.push("/");
   };
 
+  // =========================
+  // CART COUNT
+  // =========================
   useEffect(() => {
     const updateCount = () => {
       try {
         const cart =
-          JSON.parse(
-            localStorage.getItem("cart")
-          ) || [];
+          JSON.parse(localStorage.getItem("cart")) || [];
 
         const totalQty = cart.reduce(
           (acc, item) =>
@@ -133,6 +143,9 @@ export default function Nav() {
     };
   }, []);
 
+  // =========================
+  // CLOSE SIDEBAR OUTSIDE
+  // =========================
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (
@@ -167,11 +180,17 @@ export default function Nav() {
     };
   }, [menuOpen]);
 
+  const goTo = (path) => {
+    setMenuOpen(false);
+    router.push(path);
+  };
+
   return (
     <>
-      <div className="sticky top-4 z-50 px-4">
-        <nav className="relative flex justify-between items-center px-6 py-4 bg-white/70 backdrop-blur-xl border border-black/10 rounded-2xl shadow-lg">
+      <div className="fixed top-2 z-50 p-2 w-full">
+        <nav className="relative flex justify-between items-center px-6 py-4 bg-white/10 backdrop-blur-xl border border-black/10 rounded-2xl shadow-lg">
 
+          {/* LOGO */}
           <div
             className="text-2xl font-extrabold tracking-tight cursor-pointer"
             onClick={() => router.push("/")}
@@ -179,6 +198,7 @@ export default function Nav() {
             EliteShop
           </div>
 
+          {/* DESKTOP NAV LINKS */}
           <div className="hidden md:flex gap-8 font-medium">
             {links.map((link, i) => {
               const isActive =
@@ -211,20 +231,23 @@ export default function Nav() {
             })}
           </div>
 
+          {/* RIGHT SIDE */}
           <div className="flex items-center gap-3">
 
+            {/* ADMIN - DESKTOP ONLY */}
             {isAdmin && (
               <button
                 onClick={() =>
                   router.push("/admin")
                 }
-                className="p-2 rounded-full hover:bg-black/10 transition"
+                className="hidden md:block p-2 rounded-full hover:bg-black/10 transition"
                 title="Admin Dashboard"
               >
                 <LayoutDashboard size={20} />
               </button>
             )}
 
+            {/* CART - ALWAYS VISIBLE */}
             <Link
               href="/cart"
               className="relative p-2 rounded-full hover:bg-black/10 transition"
@@ -239,18 +262,20 @@ export default function Nav() {
               )}
             </Link>
 
+            {/* PROFILE - DESKTOP ONLY */}
             {isLoggedIn && (
               <button
                 onClick={() =>
                   router.push("/profile")
                 }
-                className="p-2 rounded-full hover:bg-black/10 transition"
+                className="hidden md:block p-2 rounded-full hover:bg-black/10 transition"
                 title="Profile"
               >
                 <User size={20} />
               </button>
             )}
 
+            {/* LOGIN / LOGOUT - DESKTOP ONLY */}
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
@@ -269,13 +294,13 @@ export default function Nav() {
               </button>
             )}
 
+            {/* MOBILE MENU BUTTON */}
             <button
               className="md:hidden p-2 rounded-full hover:bg-black/10 transition"
               onClick={() =>
-                setMenuOpen(
-                  (prev) => !prev
-                )
+                setMenuOpen((prev) => !prev)
               }
+              aria-label="Toggle menu"
             >
               {menuOpen ? (
                 <X size={22} />
@@ -283,55 +308,113 @@ export default function Nav() {
                 <Menu size={22} />
               )}
             </button>
-
           </div>
+        </nav>
+      </div>
 
-          {menuOpen && (
-  <>
-    <div
-      className="fixed inset-0 z-40"
+   
+      {/* MOBILE SIDEBAR */}
+
+{/* OVERLAY */}
+<div
+  className={`fixed inset-0 z-[60] bg-black/30 backdrop-blur-[2px] transition-opacity duration-300 md:hidden ${
+    menuOpen
+      ? "opacity-100 visible"
+      : "opacity-0 invisible pointer-events-none"
+  }`}
+  onClick={() => setMenuOpen(false)}
+/>
+
+{/* SIDEBAR */}
+<aside
+  ref={menuRef}
+  className={`fixed top-0 left-0 h-full w-[280px] max-w-[85%] bg-black text-white z-[70] shadow-2xl transition-transform duration-500 ease-in-out md:hidden ${
+    menuOpen
+      ? "translate-x-0"
+      : "-translate-x-full"
+  }`}
+>
+  {/* SIDEBAR HEADER */}
+  <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
+    <span className="text-xl font-bold text-white">
+      EliteShop
+    </span>
+
+    <button
       onClick={() => setMenuOpen(false)}
-    />
-
-    <div
-      ref={menuRef}
-      className="absolute top-full left-0 right-0 mt-2 z-50 bg-white border border-black/10 rounded-xl shadow-lg p-4 space-y-4"
+      className="p-2 rounded-full hover:bg-white/10 transition"
     >
-      {links.map((link, i) => (
-        <Link
-          key={i}
-          href={link.path}
-          onClick={() => setMenuOpen(false)}
-          className="block text-black/80 hover:text-black"
-        >
-          {link.aName}
-        </Link>
-      ))}
+      <X size={22} className="text-white" />
+    </button>
+  </div>
 
+  {/* SIDEBAR CONTENT */}
+  <div className="px-5">
+    <div className="flex flex-col">
+
+      {/* NAV LINKS */}
+      {links.map((link, i) => {
+        const isActive =
+          pathname === link.path ||
+          pathname.startsWith(link.path + "/");
+
+        return (
+          <Link
+            key={i}
+            href={link.path}
+            onClick={() => setMenuOpen(false)}
+            className={`py-2 text-base transition ${
+              isActive
+                ? "font-semibold text-white"
+                : "text-white/70 hover:text-white"
+            }`}
+          >
+            {link.aName}
+          </Link>
+        );
+      })}
+
+      {/* PROFILE */}
+      {isLoggedIn && (
+        <button
+          onClick={() => goTo("/profile")}
+          className="w-full text-left py-2 text-white/70 hover:text-white transition"
+        >
+          Profile
+        </button>
+      )}
+
+      {/* ADMIN */}
+      {isAdmin && (
+        <button
+          onClick={() => goTo("/admin")}
+          className="w-full text-left py-2 text-white/70 hover:text-white transition"
+        >
+          Dashboard
+        </button>
+      )}
+
+      {/* LOGIN / LOGOUT */}
       {isLoggedIn ? (
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 w-full text-red-600"
+          className="w-full text-left py-2 text-red-400 hover:text-red-300 transition"
         >
-          <LogOut size={18} />
           Logout
         </button>
       ) : (
         <button
           onClick={handleLogin}
-          className="flex items-center gap-2 w-full text-black"
+          className="w-full text-left py-2 text-white/70 hover:text-white transition"
         >
-          <LogIn size={18} />
           Login
         </button>
       )}
     </div>
-  </>
-)}
+  </div>
+</aside>
 
-        </nav>
-      </div>
-
+      {/* LOGIN MODAL */}
       {loginOpen && (
         <Login
           onClose={() =>

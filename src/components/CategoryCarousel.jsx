@@ -19,7 +19,7 @@ export default function CategoryCarousel({ categories, handleCategoryClick }) {
   };
 
   return (
-    <section className="py-12 max-w-7xl mx-auto relative group">
+    <section className="py-5 max-w-7xl mx-auto relative group">
      
 
       <div className="overflow-hidden relative">
@@ -31,7 +31,7 @@ export default function CategoryCarousel({ categories, handleCategoryClick }) {
           {categories.map((cat) => (
             <motion.div
               key={cat._id}
-              className="relative flex-shrink-0 w-1/2 h-70 sm:h-70 md:h-100 xl:h-100 cursor-pointer shadow-lg rounded-lg hover:rounded-[60%] transition-all duration-500"
+              className="relative flex-shrink-0 w-1/2 h-50 sm:h-50 md:h-80 xl:h-100 cursor-pointer shadow-lg rounded-lg hover:rounded-[60%] transition-all duration-500"
               onClick={() => handleCategoryClick(cat)}
               whileHover={{ scale: 1.05 }}
             >

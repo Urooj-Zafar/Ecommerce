@@ -33,7 +33,7 @@ export default function Footer() {
     <footer className="bg-black text-white">
 
       {/* Newsletter Hero */}
-      <div className="text-center py-24 px-6 md:px-16 border-b border-white/10">
+      <div className="text-center p-5 md:px-16 border-b border-white/10">
 
         <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6">
           Don't Miss Out!
@@ -45,7 +45,7 @@ export default function Footer() {
         </p>
 
         {/* Input */}
-        <form onSubmit={handleSubmit} className="flex justify-center px-4 py-3">
+        <form onSubmit={handleSubmit} className="flex justify-center">
         <div className="flex border border-gray-100 p-2 items-center rounded">
           <input
             name="email"
@@ -65,23 +65,11 @@ export default function Footer() {
       </div>
 
       {/* Bottom minimal bar */}
-      <div className="max-w-7xl mx-auto px-6 md:px-16 py-6 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
+      <div className="max-w-7xl mx-auto p-2 text-center text-xs text-gray-500">
 
         <p>
           © {new Date().getFullYear()} EliteShop
         </p>
-
-        <div className="flex gap-6 mt-3 md:mt-0">
-          <Link href="#" className="hover:text-white transition">
-            Refund policy
-          </Link>
-          <Link href="#" className="hover:text-white transition">
-            Privacy policy
-          </Link>
-          <Link href="/about" className="hover:text-white transition">
-            Terms of service
-          </Link>
-        </div>
 
       </div>
 

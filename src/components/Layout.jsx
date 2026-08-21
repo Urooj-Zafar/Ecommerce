@@ -21,7 +21,7 @@ const Layout = ({children}) => {
                 </div>
                 </>
     ):(
-        <div className='bg-gray-100 p-5'>
+        <div className='bg-gray-100'>
             <Nav/>
             {children}
             <Footer/>
