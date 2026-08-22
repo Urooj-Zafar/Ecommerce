@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function FilteredProducts() {
   const router = useRouter();
@@ -29,16 +30,15 @@ export default function FilteredProducts() {
   const [maxPrice, setMaxPrice] = useState("");
 
   const [hoveredIndex, setHoveredIndex] = useState({});
-
   const [mobileFilters, setMobileFilters] = useState(false);
 
   const [cart, setCart] = useState([]);
 
-  const itemsPerPage = 12;
+  const [variantProduct, setVariantProduct] = useState(null);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
 
-  // ==========================================
-  // FETCH PRODUCTS
-  // ==========================================
+  const itemsPerPage = 12;
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -68,10 +68,6 @@ export default function FilteredProducts() {
     fetchProducts();
   }, []);
 
-  // ==========================================
-  // LOAD CART
-  // ==========================================
-
   useEffect(() => {
     try {
       const savedCart = JSON.parse(
@@ -84,10 +80,6 @@ export default function FilteredProducts() {
       setCart([]);
     }
   }, []);
-
-  // ==========================================
-  // CATEGORY FILTER
-  // ==========================================
 
   const belongsToCategory = (product) => {
     if (!categoryFilter) {
@@ -109,17 +101,11 @@ export default function FilteredProducts() {
     return category === categoryFilter;
   };
 
-  // ==========================================
-  // FILTER + SORT PRODUCTS
-  // ==========================================
-
   const filteredProducts = useMemo(() => {
     let products = [...allProducts];
 
-    // Category
     products = products.filter(belongsToCategory);
 
-    // Search
     if (searchQuery.trim()) {
       const query = searchQuery
         .toLowerCase()
@@ -132,7 +118,6 @@ export default function FilteredProducts() {
       );
     }
 
-    // Minimum price
     if (minPrice !== "") {
       products = products.filter(
         (product) =>
@@ -141,7 +126,6 @@ export default function FilteredProducts() {
       );
     }
 
-    // Maximum price
     if (maxPrice !== "") {
       products = products.filter(
         (product) =>
@@ -150,7 +134,6 @@ export default function FilteredProducts() {
       );
     }
 
-    // Sorting
     if (sortBy === "price-low") {
       products.sort(
         (a, b) =>
@@ -185,10 +168,6 @@ export default function FilteredProducts() {
     sortBy,
   ]);
 
-  // ==========================================
-  // PAGINATION
-  // ==========================================
-
   const totalPages = Math.ceil(
     filteredProducts.length / itemsPerPage
   );
@@ -198,41 +177,80 @@ export default function FilteredProducts() {
     currentPage * itemsPerPage
   );
 
-  // ==========================================
-  // SEARCH
-  // ==========================================
-
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  // ==========================================
-  // ADD TO CART
-  // ==========================================
+  const getDiscount = (product) => {
+    if (product?.discount) {
+      return Number(product.discount);
+    }
 
-  const addToCart = (product) => {
-    const existing = cart.find(
-      (item) => item?._id === product?._id
+    if (
+      product?.originalPrice &&
+      product?.price &&
+      Number(product.originalPrice) >
+        Number(product.price)
+    ) {
+      return Math.round(
+        ((Number(product.originalPrice) -
+          Number(product.price)) /
+          Number(product.originalPrice)) *
+          100
+      );
+    }
+
+    return 0;
+  };
+
+  const addProductToCart = (
+    product,
+    size = "",
+    color = ""
+  ) => {
+    if (Number(product?.stock || 0) < 1) {
+      toast.error("Out of stock");
+      return;
+    }
+
+    const existingIndex = cart.findIndex(
+      (item) =>
+        item?._id === product?._id &&
+        item?.selectedSize === size &&
+        item?.selectedColor === color
     );
 
     let newCart;
 
-    if (existing) {
-      newCart = cart.map((item) =>
-        item?._id === product?._id
-          ? {
-              ...item,
-              qty: (item.qty || 1) + 1,
-            }
-          : item
-      );
+    if (existingIndex !== -1) {
+      const existingQty =
+        Number(cart[existingIndex]?.qty || 0);
+
+      if (
+        existingQty + 1 >
+        Number(product.stock)
+      ) {
+        toast.error(
+          "Cannot add more than available stock"
+        );
+        return;
+      }
+
+      newCart = [...cart];
+
+      newCart[existingIndex] = {
+        ...newCart[existingIndex],
+        qty: existingQty + 1,
+      };
     } else {
       newCart = [
         ...cart,
         {
           ...product,
           qty: 1,
+          selectedSize: size,
+          selectedColor: color,
         },
       ];
     }
@@ -247,11 +265,56 @@ export default function FilteredProducts() {
     window.dispatchEvent(
       new Event("cartUpdated")
     );
+
+    toast.success("Added to cart");
+
+    setVariantProduct(null);
+    setSelectedSize("");
+    setSelectedColor("");
   };
 
-  // ==========================================
-  // RESET FILTERS
-  // ==========================================
+  const addToCart = (product) => {
+    const hasSizes =
+      Array.isArray(product?.sizes) &&
+      product.sizes.length > 0;
+
+    const hasColors =
+      Array.isArray(product?.colors) &&
+      product.colors.length > 0;
+
+    if (hasSizes || hasColors) {
+      setVariantProduct(product);
+      setSelectedSize("");
+      setSelectedColor("");
+      return;
+    }
+
+    addProductToCart(product);
+  };
+
+  const confirmVariantCart = () => {
+    if (
+      variantProduct?.sizes?.length > 0 &&
+      !selectedSize
+    ) {
+      toast.error("Please select a size");
+      return;
+    }
+
+    if (
+      variantProduct?.colors?.length > 0 &&
+      !selectedColor
+    ) {
+      toast.error("Please select a color");
+      return;
+    }
+
+    addProductToCart(
+      variantProduct,
+      selectedSize,
+      selectedColor
+    );
+  };
 
   const resetFilters = () => {
     setMinPrice("");
@@ -261,35 +324,6 @@ export default function FilteredProducts() {
     setCurrentPage(1);
   };
 
-  // ==========================================
-  // DISCOUNT
-  // ==========================================
-
-  const getDiscount = (product) => {
-    if (product?.discount) {
-      return Number(product.discount);
-    }
-
-    if (
-      product?.originalPrice &&
-      product?.price
-    ) {
-      const discount =
-        ((Number(product.originalPrice) -
-          Number(product.price)) /
-          Number(product.originalPrice)) *
-        100;
-
-      return Math.round(discount);
-    }
-
-    return 0;
-  };
-
-  // ==========================================
-  // LOADING
-  // ==========================================
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 pt-28">
@@ -298,6 +332,7 @@ export default function FilteredProducts() {
           <div className="h-10 w-48 bg-gray-200 animate-pulse mb-6 rounded" />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
             {Array.from({ length: 12 }).map(
               (_, index) => (
                 <div
@@ -314,6 +349,7 @@ export default function FilteredProducts() {
                 </div>
               )
             )}
+
           </div>
         </div>
       </div>
@@ -325,10 +361,6 @@ export default function FilteredProducts() {
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
 
-        {/* ==========================================
-            SEARCH BAR
-        ========================================== */}
-
         <div className="bg-white p-3 mb-4 shadow-sm">
 
           <div className="flex gap-2">
@@ -338,74 +370,30 @@ export default function FilteredProducts() {
               placeholder="Search products..."
               value={searchQuery}
               onChange={handleSearch}
-              className="
-                flex-1
-                border
-                border-gray-300
-                px-4
-                py-3
-                text-sm
-                outline-none
-                focus:border-black
-                transition
-              "
+              className="flex-1 border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black transition"
             />
 
             <button
               type="button"
-              className="
-                bg-black
-                text-white
-                px-6
-                py-3
-                font-medium
-                hover:bg-gray-800
-                transition
-              "
+              className="bg-black text-white px-6 py-3 font-medium hover:bg-gray-800 transition"
             >
               Search
             </button>
 
           </div>
-        </div>
 
-        {/* ==========================================
-            MOBILE FILTER BUTTON
-        ========================================== */}
+        </div>
 
         <button
           type="button"
-          onClick={() =>
-            setMobileFilters(true)
-          }
-          className="
-            lg:hidden
-            flex
-            items-center
-            justify-center
-            gap-2
-            bg-white
-            px-4
-            py-3
-            mb-4
-            w-full
-            shadow-sm
-            text-sm
-            font-medium
-            border
-            border-gray-200
-          "
+          onClick={() => setMobileFilters(true)}
+          className="lg:hidden flex items-center justify-center gap-2 bg-white px-4 py-3 mb-4 w-full shadow-sm text-sm font-medium border border-gray-200"
         >
           <SlidersHorizontal size={18} />
-
           Filters & Sort
         </button>
 
         <div className="flex gap-5">
-
-          {/* ==========================================
-              DESKTOP FILTER SIDEBAR
-          ========================================== */}
 
           <aside className="hidden lg:block w-[230px] shrink-0">
 
@@ -420,18 +408,12 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="
-                    text-xs
-                    text-gray-500
-                    hover:text-black
-                  "
+                  className="text-xs text-gray-500 hover:text-black"
                 >
                   Reset
                 </button>
 
               </div>
-
-              {/* PRICE */}
 
               <div className="py-5">
 
@@ -446,21 +428,10 @@ export default function FilteredProducts() {
                     placeholder="Min"
                     value={minPrice}
                     onChange={(e) => {
-                      setMinPrice(
-                        e.target.value
-                      );
+                      setMinPrice(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="
-                      w-full
-                      border
-                      border-gray-300
-                      px-2
-                      py-2
-                      text-xs
-                      outline-none
-                      focus:border-black
-                    "
+                    className="w-full border border-gray-300 px-2 py-2 text-xs outline-none focus:border-black"
                   />
 
                   <input
@@ -468,27 +439,15 @@ export default function FilteredProducts() {
                     placeholder="Max"
                     value={maxPrice}
                     onChange={(e) => {
-                      setMaxPrice(
-                        e.target.value
-                      );
+                      setMaxPrice(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="
-                      w-full
-                      border
-                      border-gray-300
-                      px-2
-                      py-2
-                      text-xs
-                      outline-none
-                      focus:border-black
-                    "
+                    className="w-full border border-gray-300 px-2 py-2 text-xs outline-none focus:border-black"
                   />
 
                 </div>
-              </div>
 
-              {/* QUICK PRICE FILTERS */}
+              </div>
 
               <div className="border-t border-gray-200 pt-5">
 
@@ -505,12 +464,7 @@ export default function FilteredProducts() {
                       setMaxPrice("1000");
                       setCurrentPage(1);
                     }}
-                    className="
-                      block
-                      text-sm
-                      text-gray-600
-                      hover:text-black
-                    "
+                    className="block text-sm text-gray-600 hover:text-black"
                   >
                     Under Rs. 1,000
                   </button>
@@ -522,12 +476,7 @@ export default function FilteredProducts() {
                       setMaxPrice("5000");
                       setCurrentPage(1);
                     }}
-                    className="
-                      block
-                      text-sm
-                      text-gray-600
-                      hover:text-black
-                    "
+                    className="block text-sm text-gray-600 hover:text-black"
                   >
                     Rs. 1,000 - 5,000
                   </button>
@@ -539,12 +488,7 @@ export default function FilteredProducts() {
                       setMaxPrice("10000");
                       setCurrentPage(1);
                     }}
-                    className="
-                      block
-                      text-sm
-                      text-gray-600
-                      hover:text-black
-                    "
+                    className="block text-sm text-gray-600 hover:text-black"
                   >
                     Rs. 5,000 - 10,000
                   </button>
@@ -556,47 +500,26 @@ export default function FilteredProducts() {
                       setMaxPrice("");
                       setCurrentPage(1);
                     }}
-                    className="
-                      block
-                      text-sm
-                      text-gray-600
-                      hover:text-black
-                    "
+                    className="block text-sm text-gray-600 hover:text-black"
                   >
                     Above Rs. 10,000
                   </button>
 
                 </div>
-              </div>
-            </div>
-          </aside>
 
-          {/* ==========================================
-              PRODUCTS
-          ========================================== */}
+              </div>
+
+            </div>
+
+          </aside>
 
           <main className="flex-1 min-w-0">
 
-            {/* SORT BAR */}
+            <div className="bg-white px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
 
-            <div className="
-              bg-white
-              px-4
-              py-3
-              mb-4
-              flex
-              flex-wrap
-              items-center
-              justify-between
-              gap-3
-              shadow-sm
-            ">
-
-              <div>
-                <span className="text-sm text-gray-600">
-                  {filteredProducts.length} Products
-                </span>
-              </div>
+              <span className="text-sm text-gray-600">
+                {filteredProducts.length} Products
+              </span>
 
               <div className="flex items-center gap-2">
 
@@ -610,16 +533,7 @@ export default function FilteredProducts() {
                     setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="
-                    border
-                    border-gray-300
-                    px-3
-                    py-2
-                    text-sm
-                    outline-none
-                    bg-white
-                    focus:border-black
-                  "
+                  className="border border-gray-300 px-3 py-2 text-sm outline-none bg-white focus:border-black"
                 >
                   <option value="default">
                     Popular
@@ -639,46 +553,38 @@ export default function FilteredProducts() {
                 </select>
 
               </div>
-            </div>
 
-            {/* ==========================================
-                PRODUCT GRID
-            ========================================== */}
+            </div>
 
             {paginatedProducts.length > 0 ? (
 
-              <div className="
-                grid
-                grid-cols-2
-                sm:grid-cols-3
-                md:grid-cols-4
-                lg:grid-cols-6
-                gap-3
-              ">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
                 {paginatedProducts.map(
                   (product, productIndex) => {
 
-                    const images = Array.isArray(
-                      product?.images
-                    )
-                      ? product.images
-                      : [];
+                    const images =
+                      Array.isArray(product?.images)
+                        ? product.images
+                        : [];
 
                     const imageIndex =
-                      hoveredIndex[
-                        product?._id
-                      ] || 0;
+                      hoveredIndex[product?._id] || 0;
 
                     const imageSrc =
                       images[imageIndex] ||
                       images[0] ||
-                      "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true";
+                      "/user.jpeg";
 
                     const discount =
                       getDiscount(product);
 
+                    const hasVariants =
+                      product?.sizes?.length > 0 ||
+                      product?.colors?.length > 0;
+
                     return (
+
                       <motion.div
                         key={product?._id}
                         initial={{
@@ -694,17 +600,7 @@ export default function FilteredProducts() {
                           delay:
                             productIndex * 0.02,
                         }}
-                        className="
-                          bg-white
-                          cursor-pointer
-                          group
-                          overflow-hidden
-                          border
-                          border-transparent
-                          hover:border-gray-300
-                          hover:shadow-md
-                          transition
-                        "
+                        className="bg-white cursor-pointer group overflow-hidden border border-transparent hover:border-gray-300 hover:shadow-md transition"
                         onClick={() =>
                           router.push(
                             `/products/${product?._id}`
@@ -712,19 +608,10 @@ export default function FilteredProducts() {
                         }
                       >
 
-                        {/* PRODUCT IMAGE */}
-
                         <div
-                          className="
-                            relative
-                            aspect-square
-                            bg-gray-50
-                            overflow-hidden
-                          "
+                          className="relative aspect-square bg-gray-50 overflow-hidden"
                           onMouseEnter={() => {
-                            if (
-                              images.length > 1
-                            ) {
+                            if (images.length > 1) {
                               setHoveredIndex(
                                 (prev) => ({
                                   ...prev,
@@ -749,63 +636,39 @@ export default function FilteredProducts() {
                               product?.title ||
                               "Product"
                             }
-                            className="
-                              w-full
-                              h-full
-                              object-cover
-                              group-hover:scale-105
-                              transition-transform
-                              duration-300
-                            "
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
 
-                          {/* DISCOUNT */}
-
                           {discount > 0 && (
-                            <div className="
-                              absolute
-                              top-2
-                              left-2
-                              bg-black
-                              text-white
-                              text-[10px]
-                              px-2
-                              py-1
-                              font-medium
-                            ">
+
+                            <div className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 font-medium">
                               -{discount}%
                             </div>
+
+                          )}
+
+                          {Number(product?.stock || 0) < 1 && (
+
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="bg-white text-black px-3 py-1 text-xs font-semibold">
+                                Out of Stock
+                              </span>
+                            </div>
+
                           )}
 
                         </div>
 
-                        {/* PRODUCT DETAILS */}
-
                         <div className="p-2">
 
-                          {/* TITLE */}
-
-                          <h2 className="
-                            text-[13px]
-                            leading-5
-                            text-gray-800
-                            line-clamp-2
-                            min-h-[40px]
-                            group-hover:text-black
-                          ">
+                          <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px]">
                             {product?.title ||
                               "Untitled Product"}
                           </h2>
 
-                          {/* PRICE */}
-
                           <div className="mt-2">
 
-                            <span className="
-                              text-black
-                              text-lg
-                              font-semibold
-                            ">
+                            <span className="text-black text-lg font-semibold">
                               Rs.{" "}
                               {Number(
                                 product?.price || 0
@@ -814,77 +677,50 @@ export default function FilteredProducts() {
 
                           </div>
 
-                          {/* ORIGINAL PRICE */}
+                          {product?.sizes?.length > 0 && (
 
-                          {product?.originalPrice &&
-                            Number(
-                              product.originalPrice
-                            ) >
-                              Number(
-                                product.price
-                              ) && (
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              Sizes:{" "}
+                              {product.sizes.join(", ")}
+                            </p>
 
-                              <div className="
-                                flex
-                                items-center
-                                gap-2
-                              ">
-
-                                <span className="
-                                  text-xs
-                                  text-gray-400
-                                  line-through
-                                ">
-                                  Rs.{" "}
-                                  {Number(
-                                    product.originalPrice
-                                  ).toLocaleString()}
-                                </span>
-
-                                {discount > 0 && (
-                                  <span className="
-                                    text-xs
-                                    text-gray-500
-                                  ">
-                                    -{discount}%
-                                  </span>
-                                )}
-
-                              </div>
                           )}
 
-                          {/* DELIVERY */}
+                          {product?.colors?.length > 0 && (
 
-                          <div className="
-                            text-[11px]
-                            text-gray-400
-                          ">
-                            Free Delivery
+                            <p className="text-[11px] text-gray-500 truncate">
+                              Colors:{" "}
+                              {product.colors.join(", ")}
+                            </p>
+
+                          )}
+
+                          <div className="text-[11px] text-gray-400 mt-1">
+                            {Number(product?.stock || 0) > 0
+                              ? `In Stock: ${product.stock}`
+                              : "Out of Stock"}
                           </div>
 
                         </div>
+
                         <button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation();
-    addToCart(product);
-  }}
-  className="
-    w-[calc(100%-16px)]
-    mx-2
-    py-2.5
-    mb-2
-    bg-black
-    text-white
-    text-sm
-    font-medium
-    hover:bg-gray-800
-    transition
-  "
->
-  Add to Cart
-</button>
+                          type="button"
+                          disabled={
+                            Number(product?.stock || 0) < 1
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(product);
+                          }}
+                          className="w-[calc(100%-16px)] mx-2 py-2.5 mb-2 bg-black text-white text-sm font-medium hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {hasVariants
+                            ? "Select Options"
+                            : "Add to Cart"}
+                        </button>
+
                       </motion.div>
+
                     );
                   }
                 )}
@@ -893,11 +729,7 @@ export default function FilteredProducts() {
 
             ) : (
 
-              <div className="
-                bg-white
-                py-20
-                text-center
-              ">
+              <div className="bg-white py-20 text-center">
 
                 <p className="text-gray-500">
                   No products found.
@@ -906,30 +738,18 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="
-                    mt-4
-                    text-black
-                    text-sm
-                    underline
-                  "
+                  className="mt-4 text-black text-sm underline"
                 >
                   Clear Filters
                 </button>
 
               </div>
-            )}
 
-          
+            )}
 
             {totalPages > 1 && (
 
-              <div className="
-                flex
-                justify-center
-                items-center
-                gap-2
-                mt-8
-              ">
+              <div className="flex justify-center items-center gap-2 mt-8">
 
                 <button
                   type="button"
@@ -939,22 +759,7 @@ export default function FilteredProducts() {
                       Math.max(page - 1, 1)
                     )
                   }
-                  className="
-                    w-10
-                    h-10
-                    flex
-                    items-center
-                    justify-center
-                    bg-white
-                    border
-                    border-gray-300
-                    hover:bg-black
-                    hover:text-white
-                    disabled:opacity-40
-                    disabled:hover:bg-white
-                    disabled:hover:text-black
-                    transition
-                  "
+                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 hover:bg-black hover:text-white disabled:opacity-40 transition"
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -991,18 +796,11 @@ export default function FilteredProducts() {
                       onClick={() =>
                         setCurrentPage(page)
                       }
-                      className={`
-                        w-10
-                        h-10
-                        text-sm
-                        border
-                        transition
-                        ${
-                          currentPage === page
-                            ? "bg-black text-white border-black"
-                            : "bg-white border-gray-300 text-gray-700 hover:bg-black hover:text-white"
-                        }
-                      `}
+                      className={`w-10 h-10 text-sm border transition ${
+                        currentPage === page
+                          ? "bg-black text-white border-black"
+                          : "bg-white border-gray-300 hover:bg-black hover:text-white"
+                      }`}
                     >
                       {page}
                     </button>
@@ -1022,76 +820,31 @@ export default function FilteredProducts() {
                       )
                     )
                   }
-                  className="
-                    w-10
-                    h-10
-                    flex
-                    items-center
-                    justify-center
-                    bg-white
-                    border
-                    border-gray-300
-                    hover:bg-black
-                    hover:text-white
-                    disabled:opacity-40
-                    disabled:hover:bg-white
-                    disabled:hover:text-black
-                    transition
-                  "
+                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 hover:bg-black hover:text-white disabled:opacity-40 transition"
                 >
                   <ChevronRight size={18} />
                 </button>
 
               </div>
+
             )}
 
           </main>
+
         </div>
+
       </div>
 
-     
-
       {mobileFilters && (
-        <>
-          <div
-            className="
-              fixed
-              inset-0
-              bg-black/50
-              z-[80]
-            "
-            onClick={() =>
-              setMobileFilters(false)
-            }
-          />
 
-          <div className="
-            fixed
-            bottom-0
-            left-0
-            right-0
-            bg-white
-            z-[90]
-            rounded-t-2xl
-            p-5
-            max-h-[80vh]
-            overflow-y-auto
-          ">
+        <div className="fixed inset-0 z-50 bg-black/50 lg:hidden">
 
-            {/* HEADER */}
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white p-5 overflow-y-auto">
 
-            <div className="
-              flex
-              items-center
-              justify-between
-              mb-6
-            ">
+            <div className="flex items-center justify-between mb-6">
 
-              <h2 className="
-                font-semibold
-                text-lg
-              ">
-                Filters & Sort
+              <h2 className="text-xl font-semibold">
+                Filters
               </h2>
 
               <button
@@ -1100,229 +853,86 @@ export default function FilteredProducts() {
                   setMobileFilters(false)
                 }
               >
-                <X size={22} />
+                <X />
               </button>
 
             </div>
 
-            {/* SORT */}
+            <div className="space-y-6">
 
-            <div className="mb-6">
+              <div>
 
-              <label className="
-                block
-                text-sm
-                font-medium
-                mb-2
-              ">
-                Sort By
-              </label>
+                <h3 className="font-medium mb-3">
+                  Price
+                </h3>
 
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  setSortBy(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="
-                  w-full
-                  border
-                  border-gray-300
-                  px-3
-                  py-3
-                  text-sm
-                  outline-none
-                  focus:border-black
-                "
-              >
-                <option value="default">
-                  Popular
-                </option>
+                <div className="flex gap-2">
 
-                <option value="newest">
-                  Newest
-                </option>
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice}
+                    onChange={(e) => {
+                      setMinPrice(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full border border-gray-300 px-3 py-2"
+                  />
 
-                <option value="price-low">
-                  Price Low to High
-                </option>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice}
+                    onChange={(e) => {
+                      setMaxPrice(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full border border-gray-300 px-3 py-2"
+                  />
 
-                <option value="price-high">
-                  Price High to Low
-                </option>
-              </select>
-
-            </div>
-
-            {/* PRICE */}
-
-            <div className="mb-6">
-
-              <h3 className="
-                text-sm
-                font-medium
-                mb-3
-              ">
-                Price Range
-              </h3>
-
-              <div className="flex gap-2">
-
-                <input
-                  type="number"
-                  placeholder="Min"
-                  value={minPrice}
-                  onChange={(e) => {
-                    setMinPrice(
-                      e.target.value
-                    );
-                    setCurrentPage(1);
-                  }}
-                  className="
-                    w-full
-                    border
-                    border-gray-300
-                    px-3
-                    py-3
-                    text-sm
-                    outline-none
-                    focus:border-black
-                  "
-                />
-
-                <input
-                  type="number"
-                  placeholder="Max"
-                  value={maxPrice}
-                  onChange={(e) => {
-                    setMaxPrice(
-                      e.target.value
-                    );
-                    setCurrentPage(1);
-                  }}
-                  className="
-                    w-full
-                    border
-                    border-gray-300
-                    px-3
-                    py-3
-                    text-sm
-                    outline-none
-                    focus:border-black
-                  "
-                />
+                </div>
 
               </div>
-            </div>
 
-            {/* QUICK PRICE */}
+              <div>
 
-            <div>
+                <h3 className="font-medium mb-3">
+                  Sort
+                </h3>
 
-              <h3 className="
-                text-sm
-                font-medium
-                mb-3
-              ">
-                Quick Price
-              </h3>
-
-              <div className="space-y-3">
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMinPrice("");
-                    setMaxPrice("1000");
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="
-                    block
-                    text-sm
-                    text-gray-600
-                    hover:text-black
-                  "
+                  className="w-full border border-gray-300 px-3 py-2"
                 >
-                  Under Rs. 1,000
-                </button>
+                  <option value="default">
+                    Popular
+                  </option>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMinPrice("1000");
-                    setMaxPrice("5000");
-                    setCurrentPage(1);
-                  }}
-                  className="
-                    block
-                    text-sm
-                    text-gray-600
-                    hover:text-black
-                  "
-                >
-                  Rs. 1,000 - 5,000
-                </button>
+                  <option value="newest">
+                    Newest
+                  </option>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMinPrice("5000");
-                    setMaxPrice("10000");
-                    setCurrentPage(1);
-                  }}
-                  className="
-                    block
-                    text-sm
-                    text-gray-600
-                    hover:text-black
-                  "
-                >
-                  Rs. 5,000 - 10,000
-                </button>
+                  <option value="price-low">
+                    Price Low to High
+                  </option>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMinPrice("10000");
-                    setMaxPrice("");
-                    setCurrentPage(1);
-                  }}
-                  className="
-                    block
-                    text-sm
-                    text-gray-600
-                    hover:text-black
-                  "
-                >
-                  Above Rs. 10,000
-                </button>
+                  <option value="price-high">
+                    Price High to Low
+                  </option>
+                </select>
 
               </div>
-            </div>
-
-            {/* BUTTONS */}
-
-            <div className="
-              flex
-              gap-3
-              mt-8
-            ">
 
               <button
                 type="button"
                 onClick={resetFilters}
-                className="
-                  flex-1
-                  border
-                  border-black
-                  py-3
-                  text-sm
-                  hover:bg-black
-                  hover:text-white
-                  transition
-                "
+                className="w-full border border-black py-3"
               >
-                Reset
+                Reset Filters
               </button>
 
               <button
@@ -1330,23 +940,136 @@ export default function FilteredProducts() {
                 onClick={() =>
                   setMobileFilters(false)
                 }
-                className="
-                  flex-1
-                  bg-black
-                  text-white
-                  py-3
-                  text-sm
-                  hover:bg-gray-800
-                  transition
-                "
+                className="w-full bg-black text-white py-3"
               >
                 Apply
               </button>
 
             </div>
+
           </div>
-        </>
+
+        </div>
+
       )}
+
+      {variantProduct && (
+
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+
+          <div className="bg-white w-full max-w-md rounded-xl p-6">
+
+            <div className="flex items-center justify-between mb-5">
+
+              <h2 className="text-xl font-bold">
+                Select Options
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setVariantProduct(null);
+                  setSelectedSize("");
+                  setSelectedColor("");
+                }}
+              >
+                <X />
+              </button>
+
+            </div>
+
+            <h3 className="font-semibold text-lg mb-4">
+              {variantProduct.title}
+            </h3>
+
+            {variantProduct.sizes?.length > 0 && (
+
+              <div className="mb-5">
+
+                <p className="font-medium mb-2">
+                  Select Size
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+
+                  {variantProduct.sizes.map(
+                    (size) => (
+
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() =>
+                          setSelectedSize(size)
+                        }
+                        className={`px-4 py-2 border rounded ${
+                          selectedSize === size
+                            ? "bg-black text-white border-black"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {size}
+                      </button>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
+
+            {variantProduct.colors?.length > 0 && (
+
+              <div className="mb-6">
+
+                <p className="font-medium mb-2">
+                  Select Color
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+
+                  {variantProduct.colors.map(
+                    (color) => (
+
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() =>
+                          setSelectedColor(color)
+                        }
+                        className={`px-4 py-2 border rounded ${
+                          selectedColor === color
+                            ? "bg-black text-white border-black"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {color}
+                      </button>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
+
+            <button
+              type="button"
+              onClick={confirmVariantCart}
+              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800"
+            >
+              Add to Cart
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
     </div>
   );
 }

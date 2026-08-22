@@ -225,7 +225,7 @@ export default function BuyNow() {
   return (
     <>
       <div className="min-h-screen flex justify-center items-center pt-30 px-3 py-3">
-        <div className="max-w-5xl w-full bg-white rounded-xl p-8">
+        <div className="max-w-5xl w-full rounded-xl p-8">
 
           <h1 className="text-3xl font-bold mb-8">
             Checkout
@@ -244,7 +244,7 @@ export default function BuyNow() {
                 {cart.map((item, index) => (
                   <div
                     key={item._id}
-                    className="border rounded-lg p-4"
+                    className="rounded-lg p-4"
                   >
                     <div className="flex gap-4">
 

@@ -69,7 +69,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10">
+    <div className="min-h-screen pt-30 p-2">
 
       <div className="max-w-5xl mx-auto">
 

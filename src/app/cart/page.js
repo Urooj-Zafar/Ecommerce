@@ -86,17 +86,17 @@ export default function CartPage() {
   return (
     <div className="p-2 pt-30 min-h-screen">
 
-      <h1 className="text-4xl font-bold mb-8">
+      <h1 className="text-4xl font-bold mb-8 text-center">
         Your Cart
       </h1>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1md-grid-cols-2 xl:grid-cols-3 gap-5">
 
         {cart.map((item, index) => (
 
           <div
             key={item._id}
-            className="flex gap-6 rounded-xl p-4 bg-white"
+            className="flex gap-6 rounded-xl px-4"
           >
 
             <img
@@ -180,7 +180,7 @@ export default function CartPage() {
 
       </div>
 
-      <div className="mt-2  rounded-xl p-6 bg-white max-w-md">
+      <div className="mt-2  rounded-xl p-6  max-w-md">
 
         <h2 className="text-2xl font-bold mb-4">
           Summary

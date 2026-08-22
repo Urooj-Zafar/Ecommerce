@@ -48,7 +48,7 @@ export default function AdminDashboard() {
 
         {/* STATS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          <StatCard title="Revenue" value={`$${stats?.revenue?.toLocaleString() || 0}`} color="text-green-600" />
+          <StatCard title="Revenue" value={`Rs. ${stats?.revenue?.toLocaleString() || 0}`} color="text-green-600" />
           <StatCard title="Orders" value={stats?.orders || 0} color="text-blue-600" />
           <StatCard title="Products" value={stats?.products || 0} color="text-purple-600" />
           <StatCard title="Users" value={stats?.users || 0} color="text-orange-600" />
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
                         #{o._id?.slice(-6)}
                       </td>
                       <td className="p-2 md:p-3">{o.customer?.name}</td>
-                      <td className="p-2 md:p-3 font-semibold">${o.total?.toLocaleString()}</td>
+                      <td className="p-2 md:p-3 font-semibold">Rs. {o.total?.toLocaleString()}</td>
                       <td className="p-2 md:p-3">
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${
