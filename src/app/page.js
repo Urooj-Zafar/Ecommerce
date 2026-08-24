@@ -77,17 +77,17 @@ export default function HomePage() {
         {/* Image */}
         <div
           className="h-[300px] sm:h-[400px] md:h-[550px] bg-cover bg-center"
-          style={{ backgroundImage: "url('/WomenStyle.webp')" }}
+          style={{ backgroundImage: "url('/Women.jpg')" }}
         />
 
         {/* Content */}
         <div className="px-6 sm:px-10 md:px-20 py-10 md:py-16 text-center md:text-left">
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-semibold mb-4 md:mb-6 leading-tight">
-            Made for Women Who Move
+            Style That Moves With You
           </h2>
 
           <p className="text-gray-600 mb-6 md:mb-8 text-sm sm:text-lg">
-            Designed to keep up with your lifestyle — effortless, minimal, and refined.
+            Effortless pieces designed for every moment, from everyday essentials to standout looks.
           </p>
 
           <button  onClick={() => router.push("/collections")} className="border border-black px-6 sm:px-8 py-2 sm:py-3 hover:bg-black hover:text-white transition">

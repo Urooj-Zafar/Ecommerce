@@ -298,7 +298,7 @@ useEffect(() => {
 
                 {/* Price */}
                 <td className="px-6 py-4">
-                  ${product?.price}
+                  Rs. {product?.price}
                 </td>
 
                 {/* Actions */}

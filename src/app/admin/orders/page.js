@@ -95,6 +95,7 @@ export default function OrdersPage() {
 
     try {
       const res = await axios.delete(`/api/orders/${id}`);
+      window.location.reload();
 
       if (res.data.success) {
         setOrders((prevOrders) =>
