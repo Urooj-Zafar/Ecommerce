@@ -70,7 +70,7 @@ export default function CartPage() {
       return;
     }
 
-    router.push("/buynow");
+    router.push("/buyNow");
   };
 
   if (cart.length === 0) {
