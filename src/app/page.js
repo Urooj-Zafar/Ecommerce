@@ -21,7 +21,7 @@ export default function HomePage() {
   }, []);
 
   const handleCategoryClick = (cat) => {
-    router.push(`/FilteredProducts?category=${cat._id}`);
+    router.push(`/products?category=${cat._id}`);
   };
 
   return (

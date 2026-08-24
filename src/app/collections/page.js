@@ -42,7 +42,7 @@ export default function Collection() {
 
   const handleCategoryClick = (category) => {
     router.push(
-      `/FilteredProducts?category=${category._id}`
+      `/products?category=${category._id}`
     );
   };
 

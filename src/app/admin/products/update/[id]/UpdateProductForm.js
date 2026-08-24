@@ -160,56 +160,52 @@ export default function UpdateProductForm() {
   };
 
   const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    e.preventDefault();
+  if (!id) {
+    toast.error("Product ID is missing");
+    return;
+  }
 
-    setUpdating(true);
+  setUpdating(true);
 
-    try {
+  try {
+    const res = await axios.put(`/api/products/${id}`, {
+      ...formData,
+      price: Number(formData.price),
+      stock: Number(formData.stock),
+      images: tempImages,
+      sizes: formData.sizes,
+      colors: formData.colors,
+    });
 
-      const res = await axios.put(
-        `/api/products/${id}`,
-        {
-          ...formData,
-          price: Number(formData.price),
-          stock: Number(formData.stock),
-          images: tempImages
-        }
-      );
+    // Axios considers 2xx responses successful.
+    // Don't depend on res.data.success unless your API actually returns it.
+    if (res.status >= 200 && res.status < 300) {
+      toast.success("Product updated successfully");
 
-      if (res.data.success) {
+      router.push("/admin/products");
+      router.refresh();
 
-        toast.success(
-          "Product updated successfully"
-        );
-
-        router.push("/admin/products");
-
-      } else {
-
-        toast.error(
-          res.data.message ||
-          "Update failed"
-        );
-
-      }
-
-    } catch (error) {
-
-      console.error(error);
-
-      toast.error(
-        error.response?.data?.message ||
-        "Update failed"
-      );
-
-    } finally {
-
-      setUpdating(false);
-
+      return;
     }
 
-  };
+    toast.error(res.data?.message || "Update failed");
+
+  } catch (error) {
+    console.error(
+      "UPDATE PRODUCT ERROR:",
+      error.response?.data || error
+    );
+
+    toast.error(
+      error.response?.data?.message ||
+      "Update failed"
+    );
+  } finally {
+    setUpdating(false);
+  }
+};
 
   if (loading) {
     return (

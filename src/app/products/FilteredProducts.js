@@ -34,10 +34,6 @@ export default function FilteredProducts() {
 
   const [cart, setCart] = useState([]);
 
-  const [variantProduct, setVariantProduct] = useState(null);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
-
   const itemsPerPage = 12;
 
   useEffect(() => {
@@ -59,6 +55,7 @@ export default function FilteredProducts() {
           error.response?.data || error
         );
 
+        toast.error("Failed to load products.");
         setAllProducts([]);
       } finally {
         setLoading(false);
@@ -107,30 +104,24 @@ export default function FilteredProducts() {
     products = products.filter(belongsToCategory);
 
     if (searchQuery.trim()) {
-      const query = searchQuery
-        .toLowerCase()
-        .trim();
+      const query = searchQuery.toLowerCase().trim();
 
       products = products.filter((product) =>
-        product?.title
-          ?.toLowerCase()
-          .includes(query)
+        product?.title?.toLowerCase().includes(query)
       );
     }
 
     if (minPrice !== "") {
       products = products.filter(
         (product) =>
-          Number(product?.price || 0) >=
-          Number(minPrice)
+          Number(product?.price || 0) >= Number(minPrice)
       );
     }
 
     if (maxPrice !== "") {
       products = products.filter(
         (product) =>
-          Number(product?.price || 0) <=
-          Number(maxPrice)
+          Number(product?.price || 0) <= Number(maxPrice)
       );
     }
 
@@ -204,11 +195,7 @@ export default function FilteredProducts() {
     return 0;
   };
 
-  const addProductToCart = (
-    product,
-    size = "",
-    color = ""
-  ) => {
+  const addProductToCart = (product) => {
     if (Number(product?.stock || 0) < 1) {
       toast.error("Out of stock");
       return;
@@ -217,19 +204,20 @@ export default function FilteredProducts() {
     const existingIndex = cart.findIndex(
       (item) =>
         item?._id === product?._id &&
-        item?.selectedSize === size &&
-        item?.selectedColor === color
+        !item?.selectedSize &&
+        !item?.selectedColor
     );
 
     let newCart;
 
     if (existingIndex !== -1) {
-      const existingQty =
-        Number(cart[existingIndex]?.qty || 0);
+      const existingQty = Number(
+        cart[existingIndex]?.qty || 0
+      );
 
       if (
         existingQty + 1 >
-        Number(product.stock)
+        Number(product?.stock || 0)
       ) {
         toast.error(
           "Cannot add more than available stock"
@@ -249,8 +237,8 @@ export default function FilteredProducts() {
         {
           ...product,
           qty: 1,
-          selectedSize: size,
-          selectedColor: color,
+          selectedSize: "",
+          selectedColor: "",
         },
       ];
     }
@@ -267,53 +255,10 @@ export default function FilteredProducts() {
     );
 
     toast.success("Added to cart");
-
-    setVariantProduct(null);
-    setSelectedSize("");
-    setSelectedColor("");
   };
 
   const addToCart = (product) => {
-    const hasSizes =
-      Array.isArray(product?.sizes) &&
-      product.sizes.length > 0;
-
-    const hasColors =
-      Array.isArray(product?.colors) &&
-      product.colors.length > 0;
-
-    if (hasSizes || hasColors) {
-      setVariantProduct(product);
-      setSelectedSize("");
-      setSelectedColor("");
-      return;
-    }
-
     addProductToCart(product);
-  };
-
-  const confirmVariantCart = () => {
-    if (
-      variantProduct?.sizes?.length > 0 &&
-      !selectedSize
-    ) {
-      toast.error("Please select a size");
-      return;
-    }
-
-    if (
-      variantProduct?.colors?.length > 0 &&
-      !selectedColor
-    ) {
-      toast.error("Please select a color");
-      return;
-    }
-
-    addProductToCart(
-      variantProduct,
-      selectedSize,
-      selectedColor
-    );
   };
 
   const resetFilters = () => {
@@ -328,11 +273,9 @@ export default function FilteredProducts() {
     return (
       <div className="min-h-screen bg-gray-100 pt-28">
         <div className="max-w-[1400px] mx-auto px-4">
-
           <div className="h-10 w-48 bg-gray-200 animate-pulse mb-6 rounded" />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-
             {Array.from({ length: 12 }).map(
               (_, index) => (
                 <div
@@ -349,7 +292,6 @@ export default function FilteredProducts() {
                 </div>
               )
             )}
-
           </div>
         </div>
       </div>
@@ -358,13 +300,11 @@ export default function FilteredProducts() {
 
   return (
     <div className="min-h-screen bg-gray-100 pt-28 pb-12">
-
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
 
+        {/* SEARCH */}
         <div className="bg-white p-3 mb-4 shadow-sm">
-
           <div className="flex gap-2">
-
             <input
               type="text"
               placeholder="Search products..."
@@ -379,11 +319,10 @@ export default function FilteredProducts() {
             >
               Search
             </button>
-
           </div>
-
         </div>
 
+        {/* MOBILE FILTER BUTTON */}
         <button
           type="button"
           onClick={() => setMobileFilters(true)}
@@ -395,12 +334,11 @@ export default function FilteredProducts() {
 
         <div className="flex gap-5">
 
+          {/* DESKTOP FILTERS */}
           <aside className="hidden lg:block w-[230px] shrink-0">
-
             <div className="bg-white p-4 sticky top-24 shadow-sm">
 
               <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-
                 <h2 className="font-semibold text-gray-800">
                   Filters
                 </h2>
@@ -412,17 +350,14 @@ export default function FilteredProducts() {
                 >
                   Reset
                 </button>
-
               </div>
 
               <div className="py-5">
-
                 <h3 className="font-medium text-sm mb-4">
                   Price
                 </h3>
 
                 <div className="flex gap-2">
-
                   <input
                     type="number"
                     placeholder="Min"
@@ -444,13 +379,10 @@ export default function FilteredProducts() {
                     }}
                     className="w-full border border-gray-300 px-2 py-2 text-xs outline-none focus:border-black"
                   />
-
                 </div>
-
               </div>
 
               <div className="border-t border-gray-200 pt-5">
-
                 <h3 className="font-medium text-sm mb-3">
                   Quick Price
                 </h3>
@@ -506,13 +438,11 @@ export default function FilteredProducts() {
                   </button>
 
                 </div>
-
               </div>
-
             </div>
-
           </aside>
 
+          {/* PRODUCTS */}
           <main className="flex-1 min-w-0">
 
             <div className="bg-white px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
@@ -522,7 +452,6 @@ export default function FilteredProducts() {
               </span>
 
               <div className="flex items-center gap-2">
-
                 <span className="text-sm text-gray-500">
                   Sort By:
                 </span>
@@ -551,22 +480,20 @@ export default function FilteredProducts() {
                     Price High to Low
                   </option>
                 </select>
-
               </div>
-
             </div>
 
             {paginatedProducts.length > 0 ? (
-
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
                 {paginatedProducts.map(
                   (product, productIndex) => {
 
-                    const images =
-                      Array.isArray(product?.images)
-                        ? product.images
-                        : [];
+                    const images = Array.isArray(
+                      product?.images
+                    )
+                      ? product.images
+                      : [];
 
                     const imageIndex =
                       hoveredIndex[product?._id] || 0;
@@ -579,12 +506,7 @@ export default function FilteredProducts() {
                     const discount =
                       getDiscount(product);
 
-                    const hasVariants =
-                      product?.sizes?.length > 0 ||
-                      product?.colors?.length > 0;
-
                     return (
-
                       <motion.div
                         key={product?._id}
                         initial={{
@@ -608,6 +530,7 @@ export default function FilteredProducts() {
                         }
                       >
 
+                        {/* IMAGE */}
                         <div
                           className="relative aspect-square bg-gray-50 overflow-hidden"
                           onMouseEnter={() => {
@@ -640,25 +563,21 @@ export default function FilteredProducts() {
                           />
 
                           {discount > 0 && (
-
                             <div className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 font-medium">
                               -{discount}%
                             </div>
-
                           )}
 
                           {Number(product?.stock || 0) < 1 && (
-
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                               <span className="bg-white text-black px-3 py-1 text-xs font-semibold">
                                 Out of Stock
                               </span>
                             </div>
-
                           )}
-
                         </div>
 
+                        {/* PRODUCT INFO */}
                         <div className="p-2">
 
                           <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px]">
@@ -667,42 +586,22 @@ export default function FilteredProducts() {
                           </h2>
 
                           <div className="mt-2">
-
                             <span className="text-black text-lg font-semibold">
                               Rs.{" "}
                               {Number(
                                 product?.price || 0
                               ).toLocaleString()}
                             </span>
-
                           </div>
-
-                          {product?.sizes?.length > 0 && (
-
-                            <p className="text-[11px] text-gray-500 mt-1">
-                              Sizes:{" "}
-                              {product.sizes.join(", ")}
-                            </p>
-
-                          )}
-
-                          {product?.colors?.length > 0 && (
-
-                            <p className="text-[11px] text-gray-500 truncate">
-                              Colors:{" "}
-                              {product.colors.join(", ")}
-                            </p>
-
-                          )}
 
                           <div className="text-[11px] text-gray-400 mt-1">
                             {Number(product?.stock || 0) > 0
                               ? `In Stock: ${product.stock}`
                               : "Out of Stock"}
                           </div>
-
                         </div>
 
+                        {/* ADD TO CART */}
                         <button
                           type="button"
                           disabled={
@@ -714,21 +613,16 @@ export default function FilteredProducts() {
                           }}
                           className="w-[calc(100%-16px)] mx-2 py-2.5 mb-2 bg-black text-white text-sm font-medium hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          {hasVariants
-                            ? "Select Options"
-                            : "Add to Cart"}
+                          Add to Cart
                         </button>
 
                       </motion.div>
-
                     );
                   }
                 )}
 
               </div>
-
             ) : (
-
               <div className="bg-white py-20 text-center">
 
                 <p className="text-gray-500">
@@ -744,11 +638,10 @@ export default function FilteredProducts() {
                 </button>
 
               </div>
-
             )}
 
+            {/* PAGINATION */}
             {totalPages > 1 && (
-
               <div className="flex justify-center items-center gap-2 mt-8">
 
                 <button
@@ -826,17 +719,14 @@ export default function FilteredProducts() {
                 </button>
 
               </div>
-
             )}
 
           </main>
-
         </div>
-
       </div>
 
+      {/* MOBILE FILTERS */}
       {mobileFilters && (
-
         <div className="fixed inset-0 z-50 bg-black/50 lg:hidden">
 
           <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white p-5 overflow-y-auto">
@@ -891,7 +781,6 @@ export default function FilteredProducts() {
                   />
 
                 </div>
-
               </div>
 
               <div>
@@ -946,130 +835,9 @@ export default function FilteredProducts() {
               </button>
 
             </div>
-
           </div>
-
         </div>
-
       )}
-
-      {variantProduct && (
-
-        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
-
-          <div className="bg-white w-full max-w-md rounded-xl p-6">
-
-            <div className="flex items-center justify-between mb-5">
-
-              <h2 className="text-xl font-bold">
-                Select Options
-              </h2>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setVariantProduct(null);
-                  setSelectedSize("");
-                  setSelectedColor("");
-                }}
-              >
-                <X />
-              </button>
-
-            </div>
-
-            <h3 className="font-semibold text-lg mb-4">
-              {variantProduct.title}
-            </h3>
-
-            {variantProduct.sizes?.length > 0 && (
-
-              <div className="mb-5">
-
-                <p className="font-medium mb-2">
-                  Select Size
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-
-                  {variantProduct.sizes.map(
-                    (size) => (
-
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() =>
-                          setSelectedSize(size)
-                        }
-                        className={`px-4 py-2 border rounded ${
-                          selectedSize === size
-                            ? "bg-black text-white border-black"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {size}
-                      </button>
-
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-            )}
-
-            {variantProduct.colors?.length > 0 && (
-
-              <div className="mb-6">
-
-                <p className="font-medium mb-2">
-                  Select Color
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-
-                  {variantProduct.colors.map(
-                    (color) => (
-
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() =>
-                          setSelectedColor(color)
-                        }
-                        className={`px-4 py-2 border rounded ${
-                          selectedColor === color
-                            ? "bg-black text-white border-black"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {color}
-                      </button>
-
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-            )}
-
-            <button
-              type="button"
-              onClick={confirmVariantCart}
-              className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800"
-            >
-              Add to Cart
-            </button>
-
-          </div>
-
-        </div>
-
-      )}
-
     </div>
   );
 }

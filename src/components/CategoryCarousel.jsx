@@ -1,68 +1,81 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
 
-export default function CategoryCarousel({ categories, handleCategoryClick }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const visibleCount = 2;
-  const slideWidth = 100 / visibleCount;
-  const prev = () => {
-    setCurrentIndex((prev) =>
-      prev === 0 ? categories.length - visibleCount : prev - 1
-    );
-  };
-  const next = () => {
-    setCurrentIndex((prev) =>
-      prev + visibleCount >= categories.length ? 0 : prev + 1
-    );
-  };
-
+export default function CategoryCarousel({
+  categories,
+  handleCategoryClick,
+}) {
   return (
-    <section className="py-5 max-w-7xl mx-auto relative group">
-     
-
-      <div className="overflow-hidden relative">
-        {/* Categories Carousel */}
-        <motion.div
-          className="flex gap-6 select-none transition-transform duration-500"
-          animate={{ x: `-${currentIndex * slideWidth}%` }}
-        >
-          {categories.map((cat) => (
-            <motion.div
-              key={cat._id}
-              className="relative flex-shrink-0 w-1/2 h-50 sm:h-50 md:h-80 xl:h-100 cursor-pointer shadow-lg rounded-lg hover:rounded-[60%] transition-all duration-500"
-              onClick={() => handleCategoryClick(cat)}
-              whileHover={{ scale: 1.05 }}
+    <section className="py-5 max-w-7xl mx-auto">
+      <div
+        className="
+          flex gap-6 overflow-x-auto overflow-y-hidden
+          scroll-smooth
+          select-none
+          pb-4
+          px-1
+          scrollbar-thin
+          scrollbar-thumb-black
+          scrollbar-track-gray-200
+        "
+      >
+        {categories?.map((cat) => (
+          <div
+            key={cat._id}
+            className="
+              relative
+              flex-shrink-0
+              w-[75%]
+              sm:w-[45%]
+              md:w-[32%]
+              lg:w-[24%]
+              h-50
+              sm:h-60
+              md:h-72
+              xl:h-80
+              cursor-pointer
+              shadow-lg
+              rounded-lg
+              hover:rounded-[50%]
+              transition-all
+              duration-500
+            "
+            onClick={() => handleCategoryClick(cat)}
+          >
+            <div
+              className="
+                w-full
+                h-full
+                overflow-hidden
+                rounded-lg
+                hover:rounded-[50%]
+                transition-all
+                duration-500
+              "
             >
-              <div className="w-full h-full overflow-hidden rounded-lg transition-all duration-500 hover:rounded-[50%]">
-    
               <img
                 src={cat.images?.[0] || "/placeholder.png"}
-                alt={cat.title}
-                className="w-full h-full object-cover rounded-lg transition-all"
+                alt={cat.title || "Category"}
+                className="
+                  w-full
+                  h-full
+                  object-cover
+                  rounded-lg
+                  transition-transform
+                  duration-500
+                  hover:scale-105
+                "
               />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                <h3 className="text-white font-bold text-lg">{cat.title}</h3>
-              </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
-        {/* Left/Right Buttons (appear on hover) */}
-        <button
-          onClick={prev}
-          className="absolute top-1/2 left-2 -translate-y-1/2 bg-white/90 text-black p-4 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition z-20"
-        >
-          &#8592;
-        </button>
-        <button
-          onClick={next}
-          className="absolute top-1/2 right-2 -translate-y-1/2 bg-white/90 text-black p-4 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition z-20"
-        >
-          &#8594;
-        </button>
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <h3 className="text-white font-bold text-lg sm:text-xl text-center px-3">
+                  {cat.title}
+                </h3>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
