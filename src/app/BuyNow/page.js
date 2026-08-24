@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Login from "@/components/Login";
 
-export default function BuyNow() {
+export default function buyNow() {
   const router = useRouter();
 
   const [cart, setCart] = useState([]);
