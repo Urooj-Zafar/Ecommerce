@@ -259,7 +259,7 @@ export default function ProductDetail() {
       JSON.stringify([buyNowProduct])
     );
 
-    router.push("/buyNow");
+    router.push("/buy");
   };
 
   const renderOtherProducts = () => {
