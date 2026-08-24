@@ -10,6 +10,7 @@ export default function Profile() {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingOrder, setDeletingOrder] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -60,6 +61,48 @@ export default function Profile() {
     getOrders();
   }, [router]);
 
+const deleteOrder = async (orderId) => {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this order?"
+  );
+
+  if (!confirmed) return;
+
+  setDeletingOrder(orderId);
+
+  try {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      toast.error(data.message || "Failed to delete order");
+      return;
+    }
+
+    // Remove only the deleted order from UI
+    setOrders((prevOrders) =>
+      prevOrders.filter((order) => order._id !== orderId)
+    );
+
+    toast.success("Order deleted successfully", {
+      icon: "✓",
+      style: {
+        background: "#000",
+        color: "#fff",
+      },
+    });
+  } catch (error) {
+    console.error("DELETE ORDER ERROR:", error);
+    toast.error("Failed to delete order");
+  } finally {
+    setDeletingOrder(null);
+  }
+};
+
   if (!user || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -70,15 +113,12 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen pt-30 p-2">
-
       <div className="max-w-5xl mx-auto">
 
         {/* PROFILE */}
 
         <div className="bg-white rounded-2xl p-6 mb-8">
-
           <div className="flex items-center gap-5">
-
             {user.photo ? (
               <img
                 src={user.photo}
@@ -104,15 +144,12 @@ export default function Profile() {
                 {user.email}
               </p>
             </div>
-
           </div>
-
         </div>
 
         {/* ORDERS */}
 
         <div>
-
           <h2 className="text-2xl font-bold mb-5">
             My Orders
           </h2>
@@ -125,16 +162,14 @@ export default function Profile() {
 
               <button
                 onClick={() => router.push("/products")}
-                className="mt-4 bg-black text-white px-5 py-2 rounded-lg"
+                className="mt-4 bg-black text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition"
               >
                 Shop Now
               </button>
             </div>
           ) : (
             <div className="space-y-6">
-
               {orders.map((order) => (
-
                 <div
                   key={order._id}
                   className="bg-white border rounded-2xl p-5"
@@ -150,41 +185,47 @@ export default function Profile() {
                       </p>
 
                       <p className="text-sm text-gray-500">
-                        {new Date(
-                          order.createdAt
-                        ).toLocaleString()}
+                        {new Date(order.createdAt).toLocaleString()}
                       </p>
                     </div>
 
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium w-fit ${
-                        order.status === "delivered"
-                          ? "bg-green-100 text-green-700"
-                          : order.status === "cancelled"
-                          ? "bg-red-100 text-red-700"
-                          : order.status === "shipped"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-3">
 
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          order.status === "delivered"
+                            ? "bg-green-100 text-green-700"
+                            : order.status === "cancelled"
+                            ? "bg-red-100 text-red-700"
+                            : order.status === "shipped"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+
+                      <button
+                        onClick={() => deleteOrder(order._id)}
+                        disabled={deletingOrder === order._id}
+                        className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingOrder === order._id
+                          ? "Deleting..."
+                          : "Delete Order"}
+                      </button>
+
+                    </div>
                   </div>
 
                   {/* PRODUCTS */}
 
                   <div className="py-5 space-y-4">
-
                     {order.items?.map((item, index) => (
-
                       <div
                         key={`${order._id}-${index}`}
                         className="flex gap-4"
                       >
-
-                        {/* CLOUDINARY IMAGE */}
-
                         {item.image ? (
                           <img
                             src={item.image}
@@ -198,13 +239,12 @@ export default function Profile() {
                         )}
 
                         <div className="flex-1">
-
                           <h3 className="font-semibold">
                             {item.title}
                           </h3>
 
                           <p className="text-gray-600">
-                            ${item.price} × {item.qty}
+                            Rs. {item.price} × {item.qty}
                           </p>
 
                           {item.size && (
@@ -218,13 +258,9 @@ export default function Profile() {
                               Color: {item.color}
                             </p>
                           )}
-
                         </div>
-
                       </div>
-
                     ))}
-
                   </div>
 
                   {/* ORDER FOOTER */}
@@ -252,15 +288,13 @@ export default function Profile() {
                     </div>
 
                     <div className="md:text-right">
-
                       <p className="text-sm text-gray-500">
                         Total
                       </p>
 
                       <p className="text-xl font-bold">
-                        ${order.total}
+                        Rs. {order.total}
                       </p>
-
                     </div>
 
                   </div>
@@ -268,7 +302,6 @@ export default function Profile() {
                   {/* SHIPPING */}
 
                   <div className="border-t mt-4 pt-4">
-
                     <p className="font-semibold mb-2">
                       Shipping Information
                     </p>
@@ -284,20 +317,15 @@ export default function Profile() {
                     <p className="text-gray-600">
                       {order.customer?.city}
                     </p>
-
                   </div>
 
                 </div>
-
               ))}
-
             </div>
           )}
-
         </div>
 
       </div>
-
     </div>
   );
 }

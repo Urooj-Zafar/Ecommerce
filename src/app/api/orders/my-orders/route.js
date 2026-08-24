@@ -32,7 +32,7 @@ export async function GET(req) {
     }
 
     const orders = await Order.find({
-      user: payload.userId,
+      user: payload.id,
     })
       .populate("items.product")
       .sort({ createdAt: -1 });
