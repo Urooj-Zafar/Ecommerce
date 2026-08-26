@@ -179,8 +179,7 @@ export default function UpdateProductForm() {
       colors: formData.colors,
     });
 
-    // Axios considers 2xx responses successful.
-    // Don't depend on res.data.success unless your API actually returns it.
+   
     if (res.status >= 200 && res.status < 300) {
       toast.success("Product updated successfully");
 

@@ -5,12 +5,13 @@ import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
   X,
+  Star,
 } from "lucide-react";
-import toast from "react-hot-toast";
 
 export default function FilteredProducts() {
   const router = useRouter();
@@ -29,13 +30,19 @@ export default function FilteredProducts() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
 
+  const [selectedRating, setSelectedRating] = useState(0);
+
   const [hoveredIndex, setHoveredIndex] = useState({});
+
   const [mobileFilters, setMobileFilters] = useState(false);
 
   const [cart, setCart] = useState([]);
 
   const itemsPerPage = 12;
 
+  // =========================
+  // FETCH PRODUCTS
+  // =========================
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -55,7 +62,6 @@ export default function FilteredProducts() {
           error.response?.data || error
         );
 
-        toast.error("Failed to load products.");
         setAllProducts([]);
       } finally {
         setLoading(false);
@@ -65,6 +71,9 @@ export default function FilteredProducts() {
     fetchProducts();
   }, []);
 
+  // =========================
+  // LOAD CART
+  // =========================
   useEffect(() => {
     try {
       const savedCart = JSON.parse(
@@ -78,17 +87,15 @@ export default function FilteredProducts() {
     }
   }, []);
 
+  // =========================
+  // CATEGORY HELPER
+  // =========================
   const belongsToCategory = (product) => {
-    if (!categoryFilter) {
-      return true;
-    }
+    if (!categoryFilter) return true;
 
     const category = product?.category;
 
-    if (
-      typeof category === "object" &&
-      category !== null
-    ) {
+    if (typeof category === "object" && category !== null) {
       return (
         category?._id === categoryFilter ||
         category?.id === categoryFilter
@@ -98,11 +105,16 @@ export default function FilteredProducts() {
     return category === categoryFilter;
   };
 
+  // =========================
+  // FILTER + SORT
+  // =========================
   const filteredProducts = useMemo(() => {
     let products = [...allProducts];
 
+    // Category
     products = products.filter(belongsToCategory);
 
+    // Search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
 
@@ -111,33 +123,46 @@ export default function FilteredProducts() {
       );
     }
 
+    // Minimum price
     if (minPrice !== "") {
       products = products.filter(
-        (product) =>
-          Number(product?.price || 0) >= Number(minPrice)
+        (product) => Number(product?.price || 0) >= Number(minPrice)
       );
     }
 
+    // Maximum price
     if (maxPrice !== "") {
       products = products.filter(
-        (product) =>
-          Number(product?.price || 0) <= Number(maxPrice)
+        (product) => Number(product?.price || 0) <= Number(maxPrice)
       );
     }
 
+    // Rating
+    if (selectedRating > 0) {
+      products = products.filter((product) => {
+        const rating = Number(
+          product?.rating ||
+            product?.ratings ||
+            product?.averageRating ||
+            0
+        );
+
+        return rating >= selectedRating;
+      });
+    }
+
+    // Sorting
     if (sortBy === "price-low") {
       products.sort(
         (a, b) =>
-          Number(a?.price || 0) -
-          Number(b?.price || 0)
+          Number(a?.price || 0) - Number(b?.price || 0)
       );
     }
 
     if (sortBy === "price-high") {
       products.sort(
         (a, b) =>
-          Number(b?.price || 0) -
-          Number(a?.price || 0)
+          Number(b?.price || 0) - Number(a?.price || 0)
       );
     }
 
@@ -149,6 +174,24 @@ export default function FilteredProducts() {
       );
     }
 
+    if (sortBy === "rating") {
+      products.sort(
+        (a, b) =>
+          Number(
+            b?.rating ||
+              b?.ratings ||
+              b?.averageRating ||
+              0
+          ) -
+          Number(
+            a?.rating ||
+              a?.ratings ||
+              a?.averageRating ||
+              0
+          )
+      );
+    }
+
     return products;
   }, [
     allProducts,
@@ -156,9 +199,13 @@ export default function FilteredProducts() {
     searchQuery,
     minPrice,
     maxPrice,
+    selectedRating,
     sortBy,
   ]);
 
+  // =========================
+  // PAGINATION
+  // =========================
   const totalPages = Math.ceil(
     filteredProducts.length / itemsPerPage
   );
@@ -168,77 +215,39 @@ export default function FilteredProducts() {
     currentPage * itemsPerPage
   );
 
+  // =========================
+  // SEARCH
+  // =========================
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  const getDiscount = (product) => {
-    if (product?.discount) {
-      return Number(product.discount);
-    }
-
-    if (
-      product?.originalPrice &&
-      product?.price &&
-      Number(product.originalPrice) >
-        Number(product.price)
-    ) {
-      return Math.round(
-        ((Number(product.originalPrice) -
-          Number(product.price)) /
-          Number(product.originalPrice)) *
-          100
-      );
-    }
-
-    return 0;
-  };
-
-  const addProductToCart = (product) => {
-    if (Number(product?.stock || 0) < 1) {
-      toast.error("Out of stock");
-      return;
-    }
-
-    const existingIndex = cart.findIndex(
-      (item) =>
-        item?._id === product?._id &&
-        !item?.selectedSize &&
-        !item?.selectedColor
+  // =========================
+  // ADD TO CART
+  // =========================
+  const addToCart = (product) => {
+    const existing = cart.find(
+      (item) => item?._id === product?._id
     );
 
     let newCart;
 
-    if (existingIndex !== -1) {
-      const existingQty = Number(
-        cart[existingIndex]?.qty || 0
+    if (existing) {
+      newCart = cart.map((item) =>
+        item?._id === product?._id
+          ? {
+              ...item,
+              qty: (item.qty || 1) + 1,
+            }
+          : item
       );
-
-      if (
-        existingQty + 1 >
-        Number(product?.stock || 0)
-      ) {
-        toast.error(
-          "Cannot add more than available stock"
-        );
-        return;
-      }
-
-      newCart = [...cart];
-
-      newCart[existingIndex] = {
-        ...newCart[existingIndex],
-        qty: existingQty + 1,
-      };
     } else {
       newCart = [
         ...cart,
         {
           ...product,
           qty: 1,
-          selectedSize: "",
-          selectedColor: "",
         },
       ];
     }
@@ -250,48 +259,86 @@ export default function FilteredProducts() {
       JSON.stringify(newCart)
     );
 
-    window.dispatchEvent(
-      new Event("cartUpdated")
-    );
-
-    toast.success("Added to cart");
+    window.dispatchEvent(new Event("cartUpdated"));
   };
 
-  const addToCart = (product) => {
-    addProductToCart(product);
-  };
-
+  // =========================
+  // RESET FILTERS
+  // =========================
   const resetFilters = () => {
     setMinPrice("");
     setMaxPrice("");
+    setSelectedRating(0);
     setSearchQuery("");
     setSortBy("default");
     setCurrentPage(1);
   };
 
+  // =========================
+  // PRODUCT RATING
+  // =========================
+  const getRating = (product) => {
+    return Number(
+      product?.rating ||
+        product?.ratings ||
+        product?.averageRating ||
+        0
+    );
+  };
+
+  const getReviews = (product) => {
+    return (
+      product?.reviewsCount ||
+      product?.reviewCount ||
+      product?.reviews?.length ||
+      0
+    );
+  };
+
+  // =========================
+  // DISCOUNT
+  // =========================
+  const getDiscount = (product) => {
+    if (product?.discount) {
+      return Number(product.discount);
+    }
+
+    if (product?.originalPrice && product?.price) {
+      const discount =
+        ((Number(product.originalPrice) -
+          Number(product.price)) /
+          Number(product.originalPrice)) *
+        100;
+
+      return Math.round(discount);
+    }
+
+    return 0;
+  };
+
+  // =========================
+  // LOADING
+  // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 pt-28">
-        <div className="max-w-[1400px] mx-auto px-4">
-          <div className="h-10 w-48 bg-gray-200 animate-pulse mb-6 rounded" />
+      <div className="min-h-screen bg-[#f5f5f5] pt-32">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded mb-6" />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map(
-              (_, index) => (
-                <div
-                  key={index}
-                  className="bg-white animate-pulse"
-                >
-                  <div className="aspect-square bg-gray-200" />
-
-                  <div className="p-3 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded" />
-                    <div className="h-4 w-2/3 bg-gray-200 rounded" />
-                    <div className="h-5 w-1/2 bg-gray-200 rounded" />
-                  </div>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <div
+                key={index}
+                className="bg-white animate-pulse"
+              >
+                <div className="aspect-square bg-gray-200" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded" />
+                  <div className="h-4 w-2/3 bg-gray-200 rounded" />
+                  <div className="h-5 w-1/2 bg-gray-200 rounded" />
                 </div>
-              )
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -299,10 +346,9 @@ export default function FilteredProducts() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-28 pb-12">
+    <div className="min-h-screen bg-[#f5f5f5] pt-28 pb-12">
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
 
-        {/* SEARCH */}
         <div className="bg-white p-3 mb-4 shadow-sm">
           <div className="flex gap-2">
             <input
@@ -310,23 +356,23 @@ export default function FilteredProducts() {
               placeholder="Search products..."
               value={searchQuery}
               onChange={handleSearch}
-              className="flex-1 border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black transition"
+              className="flex-1 border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
             />
 
             <button
               type="button"
-              className="bg-black text-white px-6 py-3 font-medium hover:bg-gray-800 transition"
+              className="bg-black text-white px-6 py-3 font-medium"
             >
               Search
             </button>
           </div>
         </div>
 
-        {/* MOBILE FILTER BUTTON */}
+    
         <button
           type="button"
           onClick={() => setMobileFilters(true)}
-          className="lg:hidden flex items-center justify-center gap-2 bg-white px-4 py-3 mb-4 w-full shadow-sm text-sm font-medium border border-gray-200"
+          className="lg:hidden flex items-center gap-2 bg-white px-4 py-3 mb-4 w-full shadow-sm text-sm font-medium"
         >
           <SlidersHorizontal size={18} />
           Filters & Sort
@@ -334,11 +380,11 @@ export default function FilteredProducts() {
 
         <div className="flex gap-5">
 
-          {/* DESKTOP FILTERS */}
           <aside className="hidden lg:block w-[230px] shrink-0">
-            <div className="bg-white p-4 sticky top-24 shadow-sm">
 
-              <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+            <div className="bg-white p-4 sticky top-24">
+
+              <div className="flex items-center justify-between border-b pb-4">
                 <h2 className="font-semibold text-gray-800">
                   Filters
                 </h2>
@@ -346,13 +392,14 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-xs text-gray-500 hover:text-black"
+                  className="text-xs text-gray-700"
                 >
                   Reset
                 </button>
               </div>
 
-              <div className="py-5">
+              {/* Price */}
+              <div className="py-5 border-b">
                 <h3 className="font-medium text-sm mb-4">
                   Price
                 </h3>
@@ -382,74 +429,63 @@ export default function FilteredProducts() {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-5">
+              {/* Rating */}
+              <div className="py-5">
                 <h3 className="font-medium text-sm mb-3">
-                  Quick Price
+                  Rating
                 </h3>
 
-                <div className="space-y-2">
-
+                {[5, 4, 3, 2, 1].map((rating) => (
                   <button
+                    key={rating}
                     type="button"
                     onClick={() => {
-                      setMinPrice("");
-                      setMaxPrice("1000");
+                      setSelectedRating(
+                        selectedRating === rating
+                          ? 0
+                          : rating
+                      );
                       setCurrentPage(1);
                     }}
-                    className="block text-sm text-gray-600 hover:text-black"
+                    className={`flex items-center gap-2 w-full py-1 text-sm ${
+                      selectedRating === rating
+                        ? "text-black"
+                        : "text-gray-600"
+                    }`}
                   >
-                    Under Rs. 1,000
-                  </button>
+                    <span className="flex">
+                      {Array.from({
+                        length: 5,
+                      }).map((_, index) => (
+                        <Star
+                          key={index}
+                          size={13}
+                          fill={
+                            index < rating
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      ))}
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMinPrice("1000");
-                      setMaxPrice("5000");
-                      setCurrentPage(1);
-                    }}
-                    className="block text-sm text-gray-600 hover:text-black"
-                  >
-                    Rs. 1,000 - 5,000
+                    <span>& Up</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMinPrice("5000");
-                      setMaxPrice("10000");
-                      setCurrentPage(1);
-                    }}
-                    className="block text-sm text-gray-600 hover:text-black"
-                  >
-                    Rs. 5,000 - 10,000
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMinPrice("10000");
-                      setMaxPrice("");
-                      setCurrentPage(1);
-                    }}
-                    className="block text-sm text-gray-600 hover:text-black"
-                  >
-                    Above Rs. 10,000
-                  </button>
-
-                </div>
+                ))}
               </div>
             </div>
           </aside>
 
-          {/* PRODUCTS */}
           <main className="flex-1 min-w-0">
 
+            {/* SORT BAR */}
             <div className="bg-white px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
 
-              <span className="text-sm text-gray-600">
-                {filteredProducts.length} Products
-              </span>
+              <div>
+                <span className="text-sm text-gray-600">
+                  {filteredProducts.length} Products
+                </span>
+              </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">
@@ -462,7 +498,7 @@ export default function FilteredProducts() {
                     setSortBy(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="border border-gray-300 px-3 py-2 text-sm outline-none bg-white focus:border-black"
+                  className="border border-gray-300 px-3 py-2 text-sm outline-none bg-white"
                 >
                   <option value="default">
                     Popular
@@ -479,6 +515,10 @@ export default function FilteredProducts() {
                   <option value="price-high">
                     Price High to Low
                   </option>
+
+                  <option value="rating">
+                    Top Rated
+                  </option>
                 </select>
               </div>
             </div>
@@ -488,7 +528,6 @@ export default function FilteredProducts() {
 
                 {paginatedProducts.map(
                   (product, productIndex) => {
-
                     const images = Array.isArray(
                       product?.images
                     )
@@ -501,8 +540,10 @@ export default function FilteredProducts() {
                     const imageSrc =
                       images[imageIndex] ||
                       images[0] ||
-                      "/user.jpeg";
+                      "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true";
 
+                    const rating = getRating(product);
+                    const reviews = getReviews(product);
                     const discount =
                       getDiscount(product);
 
@@ -522,14 +563,13 @@ export default function FilteredProducts() {
                           delay:
                             productIndex * 0.02,
                         }}
-                        className="bg-white cursor-pointer group overflow-hidden border border-transparent hover:border-gray-300 hover:shadow-md transition"
+                        className="bg-white cursor-pointer group"
                         onClick={() =>
                           router.push(
                             `/products/${product?._id}`
                           )
                         }
                       >
-
                         {/* IMAGE */}
                         <div
                           className="relative aspect-square bg-gray-50 overflow-hidden"
@@ -552,7 +592,6 @@ export default function FilteredProducts() {
                             );
                           }}
                         >
-
                           <img
                             src={imageSrc}
                             alt={
@@ -563,30 +602,24 @@ export default function FilteredProducts() {
                           />
 
                           {discount > 0 && (
-                            <div className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 font-medium">
+                            <div className="absolute top-2 left-2 bg-[#f85606] text-white text-[10px] px-1.5 py-1">
                               -{discount}%
-                            </div>
-                          )}
-
-                          {Number(product?.stock || 0) < 1 && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                              <span className="bg-white text-black px-3 py-1 text-xs font-semibold">
-                                Out of Stock
-                              </span>
                             </div>
                           )}
                         </div>
 
-                        {/* PRODUCT INFO */}
-                        <div className="p-2">
+                        {/* DETAILS */}
+                        <div className="p-3">
 
-                          <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px]">
+                          {/* TITLE */}
+                          <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px] group-hover:text-gray-900  transition">
                             {product?.title ||
                               "Untitled Product"}
                           </h2>
 
-                          <div className="mt-2">
-                            <span className="text-black text-lg font-semibold">
+                          {/* PRICE */}
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-black text-lg font-medium">
                               Rs.{" "}
                               {Number(
                                 product?.price || 0
@@ -594,37 +627,71 @@ export default function FilteredProducts() {
                             </span>
                           </div>
 
-                          <div className="text-[11px] text-gray-400 mt-1">
-                            {Number(product?.stock || 0) > 0
-                              ? `In Stock: ${product.stock}`
-                              : "Out of Stock"}
+                          {/* OLD PRICE */}
+                          {product?.originalPrice &&
+                            Number(
+                              product.originalPrice
+                            ) >
+                              Number(
+                                product.price
+                              ) && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 line-through">
+                                  Rs.{" "}
+                                  {Number(
+                                    product.originalPrice
+                                  ).toLocaleString()}
+                                </span>
+
+                                {discount > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    -{discount}%
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                          {/* RATING */}
+                          <div className="flex items-center mt-2 gap-1">
+
+                            <div className="flex text-[#faca51]">
+                              {Array.from({
+                                length: 5,
+                              }).map(
+                                (_, index) => (
+                                  <Star
+                                    key={index}
+                                    size={12}
+                                    fill={
+                                      index <
+                                      Math.round(
+                                        rating
+                                      )
+                                        ? "currentColor"
+                                        : "none"
+                                    }
+                                  />
+                                )
+                              )}
+                            </div>
+
+                            <span className="text-[11px] text-gray-400">
+                              ({reviews})
+                            </span>
+                          </div>
+
+                          {/* LOCATION / SHIPPING */}
+                          <div className="text-[11px] text-gray-400 mt-2">
+                            Free Delivery
                           </div>
                         </div>
-
-                        {/* ADD TO CART */}
-                        <button
-                          type="button"
-                          disabled={
-                            Number(product?.stock || 0) < 1
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart(product);
-                          }}
-                          className="w-[calc(100%-16px)] mx-2 py-2.5 mb-2 bg-black text-white text-sm font-medium hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          Add to Cart
-                        </button>
-
                       </motion.div>
                     );
                   }
                 )}
-
               </div>
             ) : (
               <div className="bg-white py-20 text-center">
-
                 <p className="text-gray-500">
                   No products found.
                 </p>
@@ -632,15 +699,13 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="mt-4 text-black text-sm underline"
+                  className="mt-4 text-black text-sm"
                 >
                   Clear Filters
                 </button>
-
               </div>
             )}
 
-            {/* PAGINATION */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-8">
 
@@ -652,7 +717,7 @@ export default function FilteredProducts() {
                       Math.max(page - 1, 1)
                     )
                   }
-                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 hover:bg-black hover:text-white disabled:opacity-40 transition"
+                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 disabled:opacity-40"
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -660,7 +725,6 @@ export default function FilteredProducts() {
                 {Array.from({
                   length: totalPages,
                 }).map((_, index) => {
-
                   const page = index + 1;
 
                   if (
@@ -668,7 +732,9 @@ export default function FilteredProducts() {
                     page > 3 &&
                     page < totalPages - 2
                   ) {
-                    if (page === 4) {
+                    if (
+                      page === 4
+                    ) {
                       return (
                         <span
                           key={page}
@@ -689,10 +755,10 @@ export default function FilteredProducts() {
                       onClick={() =>
                         setCurrentPage(page)
                       }
-                      className={`w-10 h-10 text-sm border transition ${
+                      className={`w-10 h-10 text-sm border ${
                         currentPage === page
-                          ? "bg-black text-white border-black"
-                          : "bg-white border-gray-300 hover:bg-black hover:text-white"
+                          ? "bg-[#f85606] text-white border-[#f85606]"
+                          : "bg-white border-gray-200 text-gray-700 hover:border-orange-500"
                       }`}
                     >
                       {page}
@@ -713,27 +779,27 @@ export default function FilteredProducts() {
                       )
                     )
                   }
-                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-300 hover:bg-black hover:text-white disabled:opacity-40 transition"
+                  className="w-10 h-10 flex items-center justify-center bg-white border border-gray-200 disabled:opacity-40"
                 >
                   <ChevronRight size={18} />
                 </button>
-
               </div>
             )}
-
           </main>
         </div>
       </div>
 
-      {/* MOBILE FILTERS */}
       {mobileFilters && (
-        <div className="fixed inset-0 z-50 bg-black/50 lg:hidden">
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-[80]"
+            onClick={() => setMobileFilters(false)}
+          />
 
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white p-5 overflow-y-auto">
+          <div className="fixed bottom-0 left-0 right-0 bg-white z-[90] rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto">
 
             <div className="flex items-center justify-between mb-6">
-
-              <h2 className="text-xl font-semibold">
+              <h2 className="font-semibold text-lg">
                 Filters
               </h2>
 
@@ -743,85 +809,125 @@ export default function FilteredProducts() {
                   setMobileFilters(false)
                 }
               >
-                <X />
+                <X size={22} />
               </button>
-
             </div>
 
-            <div className="space-y-6">
+            {/* SORT */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-2">
+                Sort By
+              </label>
 
-              <div>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full border border-gray-300 px-3 py-3 text-sm"
+              >
+                <option value="default">
+                  Popular
+                </option>
 
-                <h3 className="font-medium mb-3">
-                  Price
-                </h3>
+                <option value="newest">
+                  Newest
+                </option>
 
-                <div className="flex gap-2">
+                <option value="price-low">
+                  Price Low to High
+                </option>
 
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    value={minPrice}
-                    onChange={(e) => {
-                      setMinPrice(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2"
-                  />
+                <option value="price-high">
+                  Price High to Low
+                </option>
 
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    value={maxPrice}
-                    onChange={(e) => {
-                      setMaxPrice(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full border border-gray-300 px-3 py-2"
-                  />
+                <option value="rating">
+                  Top Rated
+                </option>
+              </select>
+            </div>
 
-                </div>
-              </div>
+            {/* PRICE */}
+            <div className="mb-6">
+              <h3 className="text-sm font-medium mb-3">
+                Price Range
+              </h3>
 
-              <div>
-
-                <h3 className="font-medium mb-3">
-                  Sort
-                </h3>
-
-                <select
-                  value={sortBy}
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={minPrice}
                   onChange={(e) => {
-                    setSortBy(e.target.value);
+                    setMinPrice(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full border border-gray-300 px-3 py-2"
-                >
-                  <option value="default">
-                    Popular
-                  </option>
+                  className="w-full border px-3 py-3 text-sm"
+                />
 
-                  <option value="newest">
-                    Newest
-                  </option>
-
-                  <option value="price-low">
-                    Price Low to High
-                  </option>
-
-                  <option value="price-high">
-                    Price High to Low
-                  </option>
-                </select>
-
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={maxPrice}
+                  onChange={(e) => {
+                    setMaxPrice(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full border px-3 py-3 text-sm"
+                />
               </div>
+            </div>
 
+            {/* RATING */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">
+                Rating
+              </h3>
+
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <button
+                  key={rating}
+                  type="button"
+                  onClick={() => {
+                    setSelectedRating(
+                      selectedRating === rating
+                        ? 0
+                        : rating
+                    );
+                    setCurrentPage(1);
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm"
+                >
+                  <span className="flex text-[#faca51]">
+                    {Array.from({
+                      length: 5,
+                    }).map((_, index) => (
+                      <Star
+                        key={index}
+                        size={14}
+                        fill={
+                          index < rating
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    ))}
+                  </span>
+
+                  & Up
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3 mt-6">
               <button
                 type="button"
                 onClick={resetFilters}
-                className="w-full border border-black py-3"
+                className="flex-1 border border-gray-300 py-3 text-sm"
               >
-                Reset Filters
+                Reset
               </button>
 
               <button
@@ -829,14 +935,13 @@ export default function FilteredProducts() {
                 onClick={() =>
                   setMobileFilters(false)
                 }
-                className="w-full bg-black text-white py-3"
+                className="flex-1 bg-[#f85606] text-white py-3 text-sm"
               >
                 Apply
               </button>
-
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

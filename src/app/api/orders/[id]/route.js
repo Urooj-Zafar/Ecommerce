@@ -21,6 +21,7 @@ export async function DELETE(req, { params }) {
 
     return Response.json(
       {
+        success: true,
         message: "Order deleted successfully!",
       },
       {

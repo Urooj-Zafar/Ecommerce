@@ -90,7 +90,7 @@ export default function CartPage() {
         Your Cart
       </h1>
 
-      <div className="grid grid-cols-1md-grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md-grid-cols-2 xl:grid-cols-3 gap-5">
 
         {cart.map((item, index) => (
 
@@ -165,7 +165,7 @@ export default function CartPage() {
                   onClick={() =>
                     removeItem(index)
                   }
-                  className="ml-4 text-red-600 hover:text-red-800"
+                  className="ml-4 bg-red-600 text-black border border-red-600 rounded-sm p-1 "
                 >
                   Delete
                 </button>

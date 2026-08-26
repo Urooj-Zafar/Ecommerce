@@ -63,7 +63,7 @@ export default function Profile() {
 
 const deleteOrder = async (orderId) => {
   const confirmed = window.confirm(
-    "Are you sure you want to delete this order?"
+    "Are you sure you want to cancel this order?"
   );
 
   if (!confirmed) return;
@@ -79,25 +79,26 @@ const deleteOrder = async (orderId) => {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      toast.error(data.message || "Failed to delete order");
+      toast.error(data.message || "Failed to cancel order");
       return;
     }
 
-    // Remove only the deleted order from UI
     setOrders((prevOrders) =>
       prevOrders.filter((order) => order._id !== orderId)
     );
 
-    toast.success("Order deleted successfully", {
+    toast.success("Order cancelled", {
       icon: "✓",
       style: {
         background: "#000",
         color: "#fff",
       },
+
     });
+    router.refresh();
   } catch (error) {
-    console.error("DELETE ORDER ERROR:", error);
-    toast.error("Failed to delete order");
+    console.error("Error in cancelling order:", error);
+    toast.error("Failed to cencel order");
   } finally {
     setDeletingOrder(null);
   }
@@ -211,8 +212,8 @@ const deleteOrder = async (orderId) => {
                         className="px-4 py-2 bg-black text-white rounded-lg text-sm hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {deletingOrder === order._id
-                          ? "Deleting..."
-                          : "Delete Order"}
+                          ? "Cancelling..."
+                          : "Cencel"}
                       </button>
 
                     </div>

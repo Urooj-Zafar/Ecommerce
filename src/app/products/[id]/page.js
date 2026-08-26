@@ -120,7 +120,29 @@ export default function ProductDetail() {
     : [];
 
   const stock = Number(product.stock || 0);
+  const getColorValue = (color) => {
+  const colorMap = {
+    black: "#000000",
+    white: "#ffffff",
+    red: "#ef4444",
+    blue: "#3b82f6",
+    navy: "#1e3a8a",
+    "navy blue": "#1e3a8a",
+    green: "#22c55e",
+    pink: "#ec4899",
+    purple: "#a855f7",
+    yellow: "#eab308",
+    orange: "#f97316",
+    brown: "#92400e",
+    beige: "#f5f5dc",
+    gray: "#808080",
+    grey: "#808080",
+    silver: "#c0c0c0",
+    gold: "#d4af37",
+  };
 
+  return colorMap[color.toLowerCase().trim()] || color;
+};
   const nextImage = () => {
     if (!images.length) return;
 
@@ -562,28 +584,42 @@ export default function ProductDetail() {
                     Select Color
                   </p>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-3">
+  {colors.map((color) => {
+    const colorValue = getColorValue(color);
+    const isSelected = selectedColor === color;
 
-                    {colors.map((color) => (
-
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() =>
-                          setSelectedColor(color)
-                        }
-                        className={`px-4 py-2 border rounded ${
-                          selectedColor === color
-                            ? "bg-black text-white border-black"
-                            : "bg-white border-gray-300 hover:border-black"
-                        }`}
-                      >
-                        {color}
-                      </button>
-
-                    ))}
-
-                  </div>
+    return (
+      <button
+        key={color}
+        type="button"
+        title={color}
+        aria-label={`Select ${color}`}
+        onClick={() => setSelectedColor(color)}
+        className={`
+          w-8 h-8
+          rounded-full
+          flex items-center justify-center
+          border-2
+          transition-all
+          duration-200
+          ${
+            isSelected
+              ? "border-black ring-2 ring-gray-300 scale-110"
+              : "border-gray-300 hover:border-black"
+          }
+        `}
+      >
+        <span
+          className="w-7 h-7 rounded-full"
+          style={{
+            backgroundColor: colorValue,
+          }}
+        />
+      </button>
+    );
+  })}
+</div>
 
                 </div>
 
