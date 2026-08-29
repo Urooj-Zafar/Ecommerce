@@ -470,7 +470,7 @@ export default function Profile() {
             
 
             {filteredOrders.length === 0 ? (
-              <div className="bg-white rounded-lg border p-12 text-center">
+              <div className="bg-white rounded-lg  p-12 text-center">
                 <p className="text-gray-500 text-sm">
                   No orders found.
                 </p>

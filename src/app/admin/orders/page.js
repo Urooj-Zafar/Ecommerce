@@ -130,7 +130,7 @@ export default function OrdersPage() {
         Orders
       </h1>
 
-      <div className="border border-black rounded-xl overflow-x-auto">
+      <div className="overflow-x-auto">
 
         <table className="w-full table-auto text-xs sm:text-sm md:text-base border-collapse">
 

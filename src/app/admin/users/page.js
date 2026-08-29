@@ -45,10 +45,10 @@ export default function UsersPage() {
 
   return (
     <div className="p-2 md:p-6">
-      <h1 className="text-2xl md:text-4xl font-bold mb-6 text-center">
+      <h1 className="text-4xl md:text-4xl font-bold mb-6 text-center">
         Users
       </h1>
-<div className="border border-black rounded-xl overflow-x-auto">
+<div className="overflow-x-auto">
   <table className="w-full table-auto text-sm md:text-base border-collapse w-[500px]">
     
     <thead className="bg-black text-white">
