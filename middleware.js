@@ -1,34 +1,62 @@
 import { NextResponse } from "next/server";
-import { VerifyToken } from "@/helper/jwt";
+import { jwtVerify } from "jose";
 
-export function middleware(req) {
+async function verifyToken(token) {
+  try {
+    const secret = new TextEncoder().encode(
+      process.env.JWT_SECRET
+    );
+
+    const { payload } = await jwtVerify(token, secret);
+
+    return payload;
+  } catch (error) {
+    console.error("JWT ERROR:", error);
+    return null;
+  }
+}
+
+export async function middleware(req) {
   const token = req.cookies.get("EliteShop")?.value;
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/admin")) {
     if (!token) {
-      return NextResponse.json(
-        { error: "NO TOKEN" },
-        { status: 401 }
+      return NextResponse.redirect(
+        new URL("/", req.url)
       );
     }
 
-    const payload = VerifyToken(token);
+    const payload = await verifyToken(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: "INVALID TOKEN" },
-        { status: 401 }
+      return NextResponse.redirect(
+        new URL("/", req.url)
       );
     }
 
     if (payload.role?.toLowerCase() !== "admin") {
-      return NextResponse.json(
-        {
-          error: "NOT ADMIN",
-          role: payload.role,
-        },
-        { status: 403 }
+      return NextResponse.redirect(
+        new URL("/", req.url)
+      );
+    }
+  }
+
+  if (
+    pathname.startsWith("/BuyNow") ||
+    pathname.startsWith("/Checkout")
+  ) {
+    if (!token) {
+      return NextResponse.redirect(
+        new URL("/login", req.url)
+      );
+    }
+
+    const payload = await verifyToken(token);
+
+    if (!payload) {
+      return NextResponse.redirect(
+        new URL("/login", req.url)
       );
     }
   }
