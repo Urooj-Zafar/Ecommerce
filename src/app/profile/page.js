@@ -465,6 +465,34 @@ export default function Profile() {
               </p>
             </div>
           </aside>
+
+          <main>
+            
+
+            {filteredOrders.length === 0 ? (
+              <div className="bg-white rounded-lg border p-12 text-center">
+                <p className="text-gray-500 text-sm">
+                  No orders found.
+                </p>
+
+                <button
+                  onClick={() => router.push("/products")}
+                  className="mt-4 px-6 py-2 bg-black text-white rounded-md text-sm"
+                >
+                  Shop Now
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map((order) => (
+                  <OrderCard
+                    key={order._id}
+                    order={order}
+                  />
+                ))}
+              </div>
+            )}
+          </main>
         </div>
       </div>
 
