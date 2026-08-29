@@ -22,7 +22,7 @@ export default async function AdminPage() {
   }
 
   // Logged-in user is not admin
-  if (payload.role !== "admin") {
+  if (payload.role?.toLowerCase() !== "admin") {
     redirect("/");
   }
 

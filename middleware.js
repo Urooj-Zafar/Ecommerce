@@ -19,7 +19,7 @@ export function middleware(req) {
 
     if (
       !payload ||
-      payload.role !== "admin"
+      payload.role?.toLowerCase() !== "admin"
     ) {
       return NextResponse.redirect(
         new URL("/", req.url)
