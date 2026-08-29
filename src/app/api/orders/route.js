@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import db from "@/Backend/db";
 import { VerifyToken } from "@/helper/jwt";
-import { Resend } from "resend";
 import { Order, Product } from "@/Backend/models";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req) {
   try {
     await db();

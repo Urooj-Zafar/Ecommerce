@@ -5,7 +5,6 @@ import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
@@ -40,9 +39,6 @@ export default function FilteredProducts() {
 
   const itemsPerPage = 12;
 
-  // =========================
-  // FETCH PRODUCTS
-  // =========================
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -71,9 +67,6 @@ export default function FilteredProducts() {
     fetchProducts();
   }, []);
 
-  // =========================
-  // LOAD CART
-  // =========================
   useEffect(() => {
     try {
       const savedCart = JSON.parse(
@@ -87,9 +80,7 @@ export default function FilteredProducts() {
     }
   }, []);
 
-  // =========================
-  // CATEGORY HELPER
-  // =========================
+
   const belongsToCategory = (product) => {
     if (!categoryFilter) return true;
 
@@ -105,16 +96,25 @@ export default function FilteredProducts() {
     return category === categoryFilter;
   };
 
-  // =========================
-  // FILTER + SORT
-  // =========================
+  const getRating = (product) => {
+    const rating = Number(product?.rating);
+
+    return Number.isFinite(rating) ? rating : 0;
+  };
+
+  const getReviews = (product) => {
+    const count = Number(product?.reviewsCount);
+
+    return Number.isFinite(count) ? count : 0;
+  };
+
   const filteredProducts = useMemo(() => {
     let products = [...allProducts];
 
-    // Category
+    // CATEGORY
     products = products.filter(belongsToCategory);
 
-    // Search
+    // SEARCH
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
 
@@ -123,46 +123,43 @@ export default function FilteredProducts() {
       );
     }
 
-    // Minimum price
+    // MIN PRICE
     if (minPrice !== "") {
       products = products.filter(
-        (product) => Number(product?.price || 0) >= Number(minPrice)
+        (product) =>
+          Number(product?.price || 0) >= Number(minPrice)
       );
     }
 
-    // Maximum price
+    // MAX PRICE
     if (maxPrice !== "") {
       products = products.filter(
-        (product) => Number(product?.price || 0) <= Number(maxPrice)
+        (product) =>
+          Number(product?.price || 0) <= Number(maxPrice)
       );
     }
 
-    // Rating
+    // RATING
     if (selectedRating > 0) {
       products = products.filter((product) => {
-        const rating = Number(
-          product?.rating ||
-            product?.ratings ||
-            product?.averageRating ||
-            0
-        );
-
-        return rating >= selectedRating;
+        return getRating(product) >= selectedRating;
       });
     }
 
-    // Sorting
+    // SORT
     if (sortBy === "price-low") {
       products.sort(
         (a, b) =>
-          Number(a?.price || 0) - Number(b?.price || 0)
+          Number(a?.price || 0) -
+          Number(b?.price || 0)
       );
     }
 
     if (sortBy === "price-high") {
       products.sort(
         (a, b) =>
-          Number(b?.price || 0) - Number(a?.price || 0)
+          Number(b?.price || 0) -
+          Number(a?.price || 0)
       );
     }
 
@@ -177,18 +174,7 @@ export default function FilteredProducts() {
     if (sortBy === "rating") {
       products.sort(
         (a, b) =>
-          Number(
-            b?.rating ||
-              b?.ratings ||
-              b?.averageRating ||
-              0
-          ) -
-          Number(
-            a?.rating ||
-              a?.ratings ||
-              a?.averageRating ||
-              0
-          )
+          getRating(b) - getRating(a)
       );
     }
 
@@ -203,9 +189,6 @@ export default function FilteredProducts() {
     sortBy,
   ]);
 
-  // =========================
-  // PAGINATION
-  // =========================
   const totalPages = Math.ceil(
     filteredProducts.length / itemsPerPage
   );
@@ -215,17 +198,11 @@ export default function FilteredProducts() {
     currentPage * itemsPerPage
   );
 
-  // =========================
-  // SEARCH
-  // =========================
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   };
 
-  // =========================
-  // ADD TO CART
-  // =========================
   const addToCart = (product) => {
     const existing = cart.find(
       (item) => item?._id === product?._id
@@ -259,12 +236,12 @@ export default function FilteredProducts() {
       JSON.stringify(newCart)
     );
 
-    window.dispatchEvent(new Event("cartUpdated"));
+    window.dispatchEvent(
+      new Event("cartUpdated")
+    );
   };
 
-  // =========================
-  // RESET FILTERS
-  // =========================
+
   const resetFilters = () => {
     setMinPrice("");
     setMaxPrice("");
@@ -274,36 +251,15 @@ export default function FilteredProducts() {
     setCurrentPage(1);
   };
 
-  // =========================
-  // PRODUCT RATING
-  // =========================
-  const getRating = (product) => {
-    return Number(
-      product?.rating ||
-        product?.ratings ||
-        product?.averageRating ||
-        0
-    );
-  };
-
-  const getReviews = (product) => {
-    return (
-      product?.reviewsCount ||
-      product?.reviewCount ||
-      product?.reviews?.length ||
-      0
-    );
-  };
-
-  // =========================
-  // DISCOUNT
-  // =========================
   const getDiscount = (product) => {
     if (product?.discount) {
       return Number(product.discount);
     }
 
-    if (product?.originalPrice && product?.price) {
+    if (
+      product?.originalPrice &&
+      product?.price
+    ) {
       const discount =
         ((Number(product.originalPrice) -
           Number(product.price)) /
@@ -316,30 +272,32 @@ export default function FilteredProducts() {
     return 0;
   };
 
-  // =========================
-  // LOADING
-  // =========================
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f5f5f5] pt-32">
         <div className="max-w-7xl mx-auto px-4">
+
           <div className="h-8 w-48 bg-gray-200 animate-pulse rounded mb-6" />
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 12 }).map((_, index) => (
-              <div
-                key={index}
-                className="bg-white animate-pulse"
-              >
-                <div className="aspect-square bg-gray-200" />
-                <div className="p-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-4 w-2/3 bg-gray-200 rounded" />
-                  <div className="h-5 w-1/2 bg-gray-200 rounded" />
+            {Array.from({ length: 12 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className="bg-white animate-pulse"
+                >
+                  <div className="aspect-square bg-gray-200" />
+
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded" />
+                    <div className="h-4 w-2/3 bg-gray-200 rounded" />
+                    <div className="h-5 w-1/2 bg-gray-200 rounded" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
+
         </div>
       </div>
     );
@@ -347,10 +305,13 @@ export default function FilteredProducts() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] pt-28 pb-12">
+
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5">
 
         <div className="bg-white p-3 mb-4 shadow-sm">
+
           <div className="flex gap-2">
+
             <input
               type="text"
               placeholder="Search products..."
@@ -365,10 +326,12 @@ export default function FilteredProducts() {
             >
               Search
             </button>
+
           </div>
+
         </div>
 
-    
+        {/* MOBILE FILTER BUTTON */}
         <button
           type="button"
           onClick={() => setMobileFilters(true)}
@@ -385,6 +348,7 @@ export default function FilteredProducts() {
             <div className="bg-white p-4 sticky top-24">
 
               <div className="flex items-center justify-between border-b pb-4">
+
                 <h2 className="font-semibold text-gray-800">
                   Filters
                 </h2>
@@ -392,19 +356,22 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-xs text-gray-700"
+                  className="text-xs text-gray-700 hover:text-black"
                 >
                   Reset
                 </button>
+
               </div>
 
-              {/* Price */}
+              {/* PRICE */}
               <div className="py-5 border-b">
+
                 <h3 className="font-medium text-sm mb-4">
                   Price
                 </h3>
 
                 <div className="flex gap-2">
+
                   <input
                     type="number"
                     placeholder="Min"
@@ -426,54 +393,69 @@ export default function FilteredProducts() {
                     }}
                     className="w-full border border-gray-300 px-2 py-2 text-xs outline-none focus:border-black"
                   />
+
                 </div>
+
               </div>
 
-              {/* Rating */}
+              {/* RATING */}
               <div className="py-5">
+
                 <h3 className="font-medium text-sm mb-3">
                   Rating
                 </h3>
 
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <button
-                    key={rating}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRating(
-                        selectedRating === rating
-                          ? 0
-                          : rating
-                      );
-                      setCurrentPage(1);
-                    }}
-                    className={`flex items-center gap-2 w-full py-1 text-sm ${
-                      selectedRating === rating
-                        ? "text-black"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    <span className="flex">
-                      {Array.from({
-                        length: 5,
-                      }).map((_, index) => (
-                        <Star
-                          key={index}
-                          size={13}
-                          fill={
-                            index < rating
-                              ? "currentColor"
-                              : "none"
-                          }
-                        />
-                      ))}
-                    </span>
+                {[5, 4, 3, 2, 1].map(
+                  (rating) => (
 
-                    <span>& Up</span>
-                  </button>
-                ))}
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRating(
+                          selectedRating === rating
+                            ? 0
+                            : rating
+                        );
+
+                        setCurrentPage(1);
+                      }}
+                      className={`flex items-center gap-2 w-full py-1 text-sm ${
+                        selectedRating === rating
+                          ? "text-black font-medium"
+                          : "text-gray-600"
+                      }`}
+                    >
+
+                      <span className="flex">
+
+                        {Array.from({
+                          length: 5,
+                        }).map((_, index) => (
+                          <Star
+                            key={index}
+                            size={13}
+                            fill={
+                              index < rating
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        ))}
+
+                      </span>
+
+                      <span>& Up</span>
+
+                    </button>
+
+                  )
+                )}
+
               </div>
+
             </div>
+
           </aside>
 
           <main className="flex-1 min-w-0">
@@ -481,13 +463,12 @@ export default function FilteredProducts() {
             {/* SORT BAR */}
             <div className="bg-white px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
 
-              <div>
-                <span className="text-sm text-gray-600">
-                  {filteredProducts.length} Products
-                </span>
-              </div>
+              <span className="text-sm text-gray-600">
+                {filteredProducts.length} Products
+              </span>
 
               <div className="flex items-center gap-2">
+
                 <span className="text-sm text-gray-500">
                   Sort By:
                 </span>
@@ -519,15 +500,21 @@ export default function FilteredProducts() {
                   <option value="rating">
                     Top Rated
                   </option>
+
                 </select>
+
               </div>
+
             </div>
 
+            {/* PRODUCT GRID */}
             {paginatedProducts.length > 0 ? (
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
 
                 {paginatedProducts.map(
                   (product, productIndex) => {
+
                     const images = Array.isArray(
                       product?.images
                     )
@@ -542,8 +529,12 @@ export default function FilteredProducts() {
                       images[0] ||
                       "https://github.com/scriptwithahmad/u-shop-2.0/blob/main/public/user.jpeg?raw=true";
 
-                    const rating = getRating(product);
-                    const reviews = getReviews(product);
+                    const rating =
+                      getRating(product);
+
+                    const reviews =
+                      getReviews(product);
+
                     const discount =
                       getDiscount(product);
 
@@ -570,11 +561,15 @@ export default function FilteredProducts() {
                           )
                         }
                       >
+
                         {/* IMAGE */}
                         <div
                           className="relative aspect-square bg-gray-50 overflow-hidden"
                           onMouseEnter={() => {
-                            if (images.length > 1) {
+
+                            if (
+                              images.length > 1
+                            ) {
                               setHoveredIndex(
                                 (prev) => ({
                                   ...prev,
@@ -582,16 +577,20 @@ export default function FilteredProducts() {
                                 })
                               );
                             }
+
                           }}
                           onMouseLeave={() => {
+
                             setHoveredIndex(
                               (prev) => ({
                                 ...prev,
                                 [product?._id]: 0,
                               })
                             );
+
                           }}
                         >
+
                           <img
                             src={imageSrc}
                             alt={
@@ -602,29 +601,32 @@ export default function FilteredProducts() {
                           />
 
                           {discount > 0 && (
-                            <div className="absolute top-2 left-2 bg-[#f85606] text-white text-[10px] px-1.5 py-1">
+                            <div className="absolute top-2 left-2 bg-black text-white text-[10px] px-1.5 py-1">
                               -{discount}%
                             </div>
                           )}
+
                         </div>
 
                         {/* DETAILS */}
                         <div className="p-3">
 
                           {/* TITLE */}
-                          <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px] group-hover:text-gray-900  transition">
+                          <h2 className="text-[13px] leading-5 text-gray-800 line-clamp-2 min-h-[40px]">
                             {product?.title ||
                               "Untitled Product"}
                           </h2>
 
                           {/* PRICE */}
-                          <div className="mt-2 flex items-center gap-2">
+                          <div className="mt-2">
+
                             <span className="text-black text-lg font-medium">
                               Rs.{" "}
                               {Number(
                                 product?.price || 0
                               ).toLocaleString()}
                             </span>
+
                           </div>
 
                           {/* OLD PRICE */}
@@ -635,7 +637,9 @@ export default function FilteredProducts() {
                               Number(
                                 product.price
                               ) && (
+
                               <div className="flex items-center gap-2">
+
                                 <span className="text-xs text-gray-400 line-through">
                                   Rs.{" "}
                                   {Number(
@@ -648,17 +652,20 @@ export default function FilteredProducts() {
                                     -{discount}%
                                   </span>
                                 )}
+
                               </div>
                             )}
 
                           {/* RATING */}
                           <div className="flex items-center mt-2 gap-1">
 
-                            <div className="flex text-[#faca51]">
+                            <div className="flex text-yellow-400">
+
                               {Array.from({
                                 length: 5,
                               }).map(
                                 (_, index) => (
+
                                   <Star
                                     key={index}
                                     size={12}
@@ -671,27 +678,36 @@ export default function FilteredProducts() {
                                         : "none"
                                     }
                                   />
+
                                 )
                               )}
+
                             </div>
 
                             <span className="text-[11px] text-gray-400">
                               ({reviews})
                             </span>
+
                           </div>
 
-                          {/* LOCATION / SHIPPING */}
+                          {/* DELIVERY */}
                           <div className="text-[11px] text-gray-400 mt-2">
                             Free Delivery
                           </div>
+
                         </div>
+
                       </motion.div>
                     );
                   }
                 )}
+
               </div>
+
             ) : (
+
               <div className="bg-white py-20 text-center">
+
                 <p className="text-gray-500">
                   No products found.
                 </p>
@@ -699,14 +715,17 @@ export default function FilteredProducts() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="mt-4 text-black text-sm"
+                  className="mt-4 text-black text-sm underline"
                 >
                   Clear Filters
                 </button>
+
               </div>
+
             )}
 
             {totalPages > 1 && (
+
               <div className="flex justify-center items-center gap-2 mt-8">
 
                 <button
@@ -725,6 +744,7 @@ export default function FilteredProducts() {
                 {Array.from({
                   length: totalPages,
                 }).map((_, index) => {
+
                   const page = index + 1;
 
                   if (
@@ -732,9 +752,7 @@ export default function FilteredProducts() {
                     page > 3 &&
                     page < totalPages - 2
                   ) {
-                    if (
-                      page === 4
-                    ) {
+                    if (page === 4) {
                       return (
                         <span
                           key={page}
@@ -757,8 +775,8 @@ export default function FilteredProducts() {
                       }
                       className={`w-10 h-10 text-sm border ${
                         currentPage === page
-                          ? "bg-[#f85606] text-white border-[#f85606]"
-                          : "bg-white border-gray-200 text-gray-700 hover:border-orange-500"
+                          ? "bg-black text-white border-black"
+                          : "bg-white border-gray-200 text-gray-700 hover:border-black"
                       }`}
                     >
                       {page}
@@ -783,9 +801,12 @@ export default function FilteredProducts() {
                 >
                   <ChevronRight size={18} />
                 </button>
+
               </div>
             )}
+
           </main>
+
         </div>
       </div>
 
@@ -793,12 +814,15 @@ export default function FilteredProducts() {
         <>
           <div
             className="fixed inset-0 bg-black/40 z-[80]"
-            onClick={() => setMobileFilters(false)}
+            onClick={() =>
+              setMobileFilters(false)
+            }
           />
 
           <div className="fixed bottom-0 left-0 right-0 bg-white z-[90] rounded-t-2xl p-5 max-h-[80vh] overflow-y-auto">
 
             <div className="flex items-center justify-between mb-6">
+
               <h2 className="font-semibold text-lg">
                 Filters
               </h2>
@@ -811,10 +835,12 @@ export default function FilteredProducts() {
               >
                 <X size={22} />
               </button>
+
             </div>
 
             {/* SORT */}
             <div className="mb-6">
+
               <label className="block text-sm font-medium mb-2">
                 Sort By
               </label>
@@ -846,16 +872,20 @@ export default function FilteredProducts() {
                 <option value="rating">
                   Top Rated
                 </option>
+
               </select>
+
             </div>
 
             {/* PRICE */}
             <div className="mb-6">
+
               <h3 className="text-sm font-medium mb-3">
                 Price Range
               </h3>
 
               <div className="flex gap-2">
+
                 <input
                   type="number"
                   placeholder="Min"
@@ -877,51 +907,73 @@ export default function FilteredProducts() {
                   }}
                   className="w-full border px-3 py-3 text-sm"
                 />
+
               </div>
+
             </div>
 
             {/* RATING */}
             <div>
+
               <h3 className="text-sm font-medium mb-3">
                 Rating
               </h3>
 
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <button
-                  key={rating}
-                  type="button"
-                  onClick={() => {
-                    setSelectedRating(
-                      selectedRating === rating
-                        ? 0
-                        : rating
-                    );
-                    setCurrentPage(1);
-                  }}
-                  className="flex items-center gap-2 py-2 text-sm"
-                >
-                  <span className="flex text-[#faca51]">
-                    {Array.from({
-                      length: 5,
-                    }).map((_, index) => (
-                      <Star
-                        key={index}
-                        size={14}
-                        fill={
-                          index < rating
-                            ? "currentColor"
-                            : "none"
-                        }
-                      />
-                    ))}
-                  </span>
+              {[5, 4, 3, 2, 1].map(
+                (rating) => (
 
-                  & Up
-                </button>
-              ))}
+                  <button
+                    key={rating}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRating(
+                        selectedRating === rating
+                          ? 0
+                          : rating
+                      );
+
+                      setCurrentPage(1);
+                    }}
+                    className={`flex items-center gap-2 py-2 text-sm ${
+                      selectedRating === rating
+                        ? "font-medium"
+                        : ""
+                    }`}
+                  >
+
+                    <span className="flex text-yellow-400">
+
+                      {Array.from({
+                        length: 5,
+                      }).map(
+                        (_, index) => (
+
+                          <Star
+                            key={index}
+                            size={14}
+                            fill={
+                              index < rating
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+
+                        )
+                      )}
+
+                    </span>
+
+                    & Up
+
+                  </button>
+
+                )
+              )}
+
             </div>
 
             <div className="flex gap-3 mt-6">
+
               <button
                 type="button"
                 onClick={resetFilters}
@@ -935,14 +987,17 @@ export default function FilteredProducts() {
                 onClick={() =>
                   setMobileFilters(false)
                 }
-                className="flex-1 bg-[#f85606] text-white py-3 text-sm"
+                className="flex-1 bg-black text-white py-3 text-sm"
               >
                 Apply
               </button>
+
             </div>
+
           </div>
         </>
       )}
+
     </div>
   );
 }

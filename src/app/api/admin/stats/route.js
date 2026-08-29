@@ -51,10 +51,15 @@ export async function GET(req) {
       UserModel.countDocuments(),
     ]);
 
-    const orders = await Order.find({}, { total: 1 });
+    const paidOrders = await Order.find({
+      paymentStatus: "paid",
+      status: { $ne: "cancelled" },
+    })
+      .select("total")
+      .lean();
 
-    const revenue = orders.reduce(
-      (sum, order) => sum + (order.total || 0),
+    const revenue = paidOrders.reduce(
+      (sum, order) => sum + (Number(order.total) || 0),
       0
     );
 
@@ -82,7 +87,6 @@ export async function GET(req) {
       recentOrders,
       recentUsers,
     });
-
   } catch (error) {
     console.error("Stats API error:", error);
 

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
   ChevronRight,
-  X,
+  Star,
 } from "lucide-react";
 
 export default function ProductDetail() {
@@ -18,8 +18,10 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [otherProducts, setOtherProducts] = useState([]);
 
-  const [showOtherProducts, setShowOtherProducts] =
-    useState(false);
+
+const [reviews, setReviews] = useState([]);
+const [productRating, setProductRating] = useState(0);
+const [reviewsCount, setReviewsCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
@@ -30,7 +32,30 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
 
   const [hoveredIndex, setHoveredIndex] = useState({});
+  useEffect(() => {
+  if (!id) return;
 
+  const fetchReviews = async () => {
+    try {
+      const res = await axios.get(
+        `/api/products/${id}/reviews`
+      );
+
+      if (res.data.success) {
+        setReviews(res.data.reviews || []);
+        setProductRating(res.data.rating || 0);
+        setReviewsCount(res.data.reviewsCount || 0);
+      }
+    } catch (error) {
+      console.error(
+        "FETCH REVIEWS ERROR:",
+        error.response?.data || error
+      );
+    }
+  };
+
+  fetchReviews();
+}, [id]);
   useEffect(() => {
     const fetchProduct = async () => {
       if (!id) return;
@@ -77,7 +102,50 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [id]);
+const submitReview = async () => {
+  if (!selectedRating) {
+    toast.error("Please select a rating");
+    return;
+  }
 
+  setSubmittingReview(true);
+
+  try {
+    const res = await axios.post(
+      `/api/products/${id}/reviews`,
+      {
+        rating: selectedRating,
+        comment: reviewComment,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (res.data.success) {
+      const updatedProduct = res.data.product;
+
+      setReviews(updatedProduct.reviews || []);
+      setProductRating(updatedProduct.rating || 0);
+      setReviewsCount(
+        updatedProduct.reviewsCount || 0
+      );
+
+      setSelectedRating(0);
+      setHoverRating(0);
+      setReviewComment("");
+
+      toast.success(res.data.message);
+    }
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message ||
+        "Failed to submit review"
+    );
+  } finally {
+    setSubmittingReview(false);
+  }
+};
   useEffect(() => {
     if (product) {
       setCurrentImage(0);
@@ -693,7 +761,144 @@ export default function ProductDetail() {
 
         </div>
 
+<div className="mt-1 bg-white p-3">
 
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+
+    <div>
+      <h2 className="text-xl font-semibold">
+        Customer Reviews
+      </h2>
+
+      <p className="text-sm text-gray-500 mt-1">
+        {reviewsCount} reviews
+      </p>
+    </div>
+
+    <div className="flex items-center gap-3">
+
+      <div className="text-3xl font-bold">
+        {Number(productRating || 0).toFixed(1)}
+      </div>
+
+      <div>
+        <div className="flex text-yellow-400">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Star
+              key={index}
+              size={18}
+              fill={
+                index < Math.round(productRating || 0)
+                  ? "currentColor"
+                  : "none"
+              }
+            />
+          ))}
+        </div>
+
+        <p className="text-xs text-gray-500 mt-1">
+          Based on {reviewsCount} reviews
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div className="border-t pt-5">
+
+    {reviews.length === 0 ? (
+
+      <div className="py-10 text-center">
+        <p className="text-gray-500 text-sm">
+          No reviews yet.
+        </p>
+      </div>
+
+    ) : (
+
+      <div className="space-y-5">
+
+        {reviews.map((review, index) => (
+
+          <div
+            key={review._id || index}
+            className="border-b pb-5 last:border-b-0 last:pb-0"
+          >
+
+            <div className="flex items-start justify-between gap-3">
+
+              <div className="flex items-center gap-3">
+
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                  <span className="font-semibold text-sm text-gray-600">
+                    {(
+                      review.user?.fullName ||
+                      review.user?.userName ||
+                      "C"
+                    )
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
+                </div>
+
+                <div>
+
+                  <p className="font-semibold text-sm">
+                    {review.user?.fullName ||
+                      review.user?.userName ||
+                      "Customer"}
+                  </p>
+
+                  <div className="flex items-center gap-1 mt-1">
+                    {Array.from({ length: 5 }).map(
+                      (_, starIndex) => (
+                        <Star
+                          key={starIndex}
+                          size={14}
+                          className="text-yellow-400"
+                          fill={
+                            starIndex <
+                            Number(review.rating || 0)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+
+                </div>
+
+              </div>
+
+              <span className="text-xs text-gray-400 whitespace-nowrap">
+                {review.createdAt
+                  ? new Date(
+                      review.createdAt
+                    ).toLocaleDateString()
+                  : ""}
+              </span>
+
+            </div>
+
+            {review.comment && (
+              <p className="text-sm text-gray-600 leading-6 mt-3 ml-[52px]">
+                {review.comment}
+              </p>
+            )}
+
+          </div>
+
+        ))}
+
+      </div>
+
+    )}
+
+  </div>
+
+</div>
         {
           otherProducts.length > 0 && (
 
