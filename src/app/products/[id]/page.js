@@ -14,7 +14,7 @@ import {
 export default function ProductDetail() {
   const { id } = useParams();
   const router = useRouter();
-
+  const [showFullDescription, setShowFullDescription] = useState(false);
   const [product, setProduct] = useState(null);
   const [otherProducts, setOtherProducts] = useState([]);
 
@@ -450,19 +450,6 @@ const submitReview = async () => {
                 item?.price || 0
               ).toLocaleString()}
             </p>
-
-            {item?.sizes?.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
-                {item.sizes.join(", ")}
-              </p>
-            )}
-
-            {item?.colors?.length > 0 && (
-              <p className="text-xs text-gray-500 truncate">
-                {item.colors.join(", ")}
-              </p>
-            )}
-
             <button
               type="button"
               onClick={(e) => {
@@ -586,9 +573,27 @@ const submitReview = async () => {
                 {product.title}
               </h1>
 
-              <p className="text-gray-600 leading-7">
-                {product.desc}
-              </p>
+             <div>
+  <p
+    className={`text-gray-600 leading-7 ${
+      !showFullDescription ? "line-clamp-1" : ""
+    }`}
+  >
+    {product.desc}
+  </p>
+
+  {product.desc?.length > 150 && (
+    <button
+      type="button"
+      onClick={() =>
+        setShowFullDescription((prev) => !prev)
+      }
+      className="mt-2 text-sm font-semibold text-black hover:underline"
+    >
+      {showFullDescription ? "View less" : "View more"}
+    </button>
+  )}
+</div>
 
               <div className="text-3xl font-bold">
                 Rs.{" "}
